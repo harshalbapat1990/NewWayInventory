@@ -1,0 +1,43 @@
+Package app script started at Wed 06/04/2025  8:47:49.47 
+Listing all version folders: 
+Found folder: v1.01 
+Extracted version: 1 
+As number: 1 
+New highest version: 1 
+Found folder: v1.02 
+Extracted version: 2 
+As number: 2 
+New highest version: 2 
+Found folder: v1.03 
+Extracted version: 3 
+As number: 3 
+New highest version: 3 
+Found folder: v1.04 
+Extracted version: 4 
+As number: 4 
+New highest version: 4 
+Highest version found: 4, Next version will be: 5 
+Next version folder will be: v1.05 
+Creating directories at: C:\Users\harsh\OneDrive\Work\Baba_Work\v1.05 
+Copying files to destination... 
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\InventoryAppBackend.exe
+1 File(s) copied
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\index.html
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\InventoryAppBackend.exe
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\new way - logo with name.svg
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\vite.svg
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\assets\html2canvas.esm-CBrSDip1.js
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\assets\index-DDGZhPuF.css
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\assets\index-DgWXJBWN.js
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\assets\index.es-pIgLbkXU.js
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\assets\purify.es-CQJ0hv7W.js
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\images\InvoiceSignature.png
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\images\InvoiceSignature2.png
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\images\NewWaySignature.png
+12 File(s) copied
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\instance\inventory.db
+1 File(s) copied
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\README.txt
+1 File(s) copied
+C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\Icon - logo with name.ico
+1 File(s) copied
