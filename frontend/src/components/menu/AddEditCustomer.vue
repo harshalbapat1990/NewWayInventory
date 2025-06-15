@@ -141,7 +141,15 @@
         </button>
       </div>
     </form>
-
+    <!-- Search Bar -->
+    <div class="my-4 flex items-center">
+      <input
+        type="text"
+        v-model="searchQuery"
+        placeholder="Search by Company or Contact Person"
+        class="w-1/3 border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+      />
+    </div>
     <table class="table mt-6">
       <thead>
         <tr>
@@ -156,7 +164,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(customer, index) in customers" :key="index">
+        <tr v-for="(customer, index) in filteredCustomers" :key="index">
           <td>{{ customer.company_name }}</td>
           <td>{{ customer.contact_person }}</td>
           <td>{{ customer.address }}</td>
@@ -194,7 +202,20 @@ export default {
       saveButtonText: 'Add',
       userRole: '', // Role of the logged-in user
       errors: {}, // Object to store validation errors
+      searchQuery: '', // <-- Added for search
     };
+  },
+  computed: {
+    filteredCustomers() {
+      if (!this.searchQuery.trim()) {
+        return this.customers;
+      }
+      const query = this.searchQuery.trim().toLowerCase();
+      return this.customers.filter(c =>
+        (c.company_name && c.company_name.toLowerCase().includes(query)) ||
+        (c.contact_person && c.contact_person.toLowerCase().includes(query))
+      );
+    },
   },
   methods: {
     async fetchCustomers() {
@@ -297,6 +318,13 @@ export default {
       this.email = Array.isArray(customer.email) ? customer.email.join(', ') : customer.email;
       this.saveButtonText = 'Save';
       this.customerId = customer.id;
+      // Scroll to top of the form
+      this.$nextTick(() => {
+        const form = this.$el.querySelector('form');
+        if (form) {
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
     },
     cancelEdit() {
       this.resetForm();

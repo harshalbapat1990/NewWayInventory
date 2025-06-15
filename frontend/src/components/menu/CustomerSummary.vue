@@ -759,9 +759,9 @@ export default {
       
       try {
         // Log the data being sent
-        console.log('Preview Items:', this.previewItemsData);
-        console.log('Customer Rates:', this.customerRates);
-        console.log('Selected Customer:', this.selectedCustomer);
+        // console.log('Preview Items:', this.previewItemsData);
+        // console.log('Customer Rates:', this.customerRates);
+        // console.log('Selected Customer:', this.selectedCustomer);
         
         // Verify we have the required data
         if (!this.previewItemsData.length) {
@@ -810,11 +810,11 @@ export default {
           }))
         };
 
-        console.log('Invoice to save:', invoiceToSave);
+        // console.log('Invoice to save:', invoiceToSave);
 
         // Send to API and log the response
         const response = await axios.post('/invoices', invoiceToSave);
-        console.log('API Response:', response.data);
+        // console.log('API Response:', response.data);
 
         // Update the invoice data with the formatted invoice number and calculated totals
         this.previewInvoiceData = {
@@ -827,12 +827,12 @@ export default {
         };
         
         // Generate the actual PDF invoice
-        console.log('Generating PDF with data:', {
-          invoiceData: this.previewInvoiceData,
-          customer: this.selectedCustomer,
-          items: this.previewItemsData,
-          rates: this.customerRates
-        });
+        // console.log('Generating PDF with data:', {
+        //   invoiceData: this.previewInvoiceData,
+        //   customer: this.selectedCustomer,
+        //   items: this.previewItemsData,
+        //   rates: this.customerRates
+        // });
         const pdfResult = await printTaxInvoice(
           this.previewInvoiceData,
           this.selectedCustomer,
@@ -841,7 +841,7 @@ export default {
           true
         );
 
-        console.log('PDF Generation Result:', pdfResult);
+        // console.log('PDF Generation Result:', pdfResult);
         
       } catch (error) {
         console.error('Error details:', {
