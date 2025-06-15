@@ -58,25 +58,21 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="invoice in invoices" :key="invoice.id" 
-            :class="{
-              'bg-green-50': invoice.status === 'paid',
-              'bg-red-50': invoice.status === 'cancelled',
-              'bg-yellow-50': invoice.status === 'unpaid'
-            }">
+        <tr v-for="invoice in invoices" :key="invoice.id" :class="{
+          'bg-green-50': invoice.status === 'paid',
+          'bg-red-50': invoice.status === 'cancelled',
+          'bg-yellow-50': invoice.status === 'unpaid'
+        }">
           <td class="border border-gray-300 px-4 py-2">{{ invoice.invoice_number }}</td>
           <td class="border border-gray-300 px-4 py-2">{{ formatDate(invoice.invoice_date) }}</td>
           <td class="border border-gray-300 px-4 py-2">{{ invoice.customer_name }}</td>
           <td class="border border-gray-300 px-4 py-2">₹{{ formatAmount(invoice.grand_total) }}</td>
           <td class="border border-gray-300 px-4 py-2">
-            <span 
-              :class="{
-                'bg-green-100 text-green-800': invoice.status === 'paid',
-                'bg-red-100 text-red-800': invoice.status === 'cancelled',
-                'bg-yellow-100 text-yellow-800': invoice.status === 'unpaid'
-              }"
-              class="px-2 py-1 rounded-full"
-            >
+            <span :class="{
+              'bg-green-100 text-green-800': invoice.status === 'paid',
+              'bg-red-100 text-red-800': invoice.status === 'cancelled',
+              'bg-yellow-100 text-yellow-800': invoice.status === 'unpaid'
+            }" class="px-2 py-1 rounded-full">
               {{ capitalizeFirstLetter(invoice.status) }}
             </span>
           </td>
@@ -86,7 +82,8 @@
             <button @click="showEmailModal(invoice)" class="btn-email mr-2">
               <i class="fas fa-envelope mr-1"></i> Email
             </button>
-            <button @click="updateStatus(invoice)" class="btn-secondary mr-2" v-if="userRole === 'admin' || userRole === 'accountant'">
+            <button @click="updateStatus(invoice)" class="btn-secondary mr-2"
+              v-if="userRole === 'admin' || userRole === 'accountant'">
               {{ invoice.status === 'paid' ? 'Mark Unpaid' : 'Mark Paid' }}
             </button>
             <button @click="deleteInvoice(invoice)" class="btn-danger" v-if="userRole === 'accountant'">
@@ -105,50 +102,42 @@
   <div v-if="showEmailModalFlag" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-lg shadow-lg w-1/2">
       <h2 class="text-xl font-semibold mb-4">Email Invoice</h2>
-      
+
       <div v-if="!selectedCustomerEmail" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        <strong>Error:</strong> This customer doesn't have an email address. 
+        <strong>Error:</strong> This customer doesn't have an email address.
         <a @click="goToCustomerEdit" class="text-blue-600 underline cursor-pointer">
           Update email address
         </a>
       </div>
-      
+
       <div v-else>
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Invoice</label>
           <div class="text-gray-800">{{ selectedInvoice?.invoice_number }}</div>
         </div>
-        
+
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
           <div class="text-gray-800">{{ selectedCustomerName }}</div>
         </div>
-        
+
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Email To</label>
           <div class="text-gray-800">{{ selectedCustomerEmail }}</div>
         </div>
-        
+
         <div class="mb-4">
           <label for="email-subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-          <input
-            id="email-subject"
-            v-model="emailData.subject"
-            type="text"
-            class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          />
+          <input id="email-subject" v-model="emailData.subject" type="text"
+            class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
         </div>
-        
+
         <div class="mb-4">
           <label for="email-message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
-          <textarea
-            id="email-message"
-            v-model="emailData.message"
-            rows="9"
-            class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          ></textarea>
+          <textarea id="email-message" v-model="emailData.message" rows="9"
+            class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
         </div>
-        
+
         <div class="mb-4">
           <label class="inline-flex items-center">
             <input type="checkbox" v-model="emailData.includePdf" class="form-checkbox h-5 w-5 text-blue-600">
@@ -156,19 +145,12 @@
           </label>
         </div>
       </div>
-      
+
       <div class="flex justify-end space-x-3 mt-6">
-        <button 
-          @click="closeEmailModal" 
-          class="btn-secondary"
-        >
+        <button @click="closeEmailModal" class="btn-secondary">
           Cancel
         </button>
-        <button 
-          @click="sendEmail" 
-          class="btn-primary"
-          :disabled="isSending || !selectedCustomerEmail"
-        >
+        <button @click="sendEmail" class="btn-primary" :disabled="isSending || !selectedCustomerEmail">
           {{ isSending ? 'Sending...' : 'Send Email' }}
         </button>
       </div>
@@ -212,12 +194,12 @@ export default {
       this.loading = true;
       try {
         const queryParams = new URLSearchParams();
-        
+
         // Clean and validate invoice number filter
         if (this.filters.invoiceNumber && this.filters.invoiceNumber.trim()) {
           queryParams.append('invoice_number', this.filters.invoiceNumber.trim());
         }
-        
+
         // Validate date filter
         if (this.filters.invoiceDate) {
           // Ensure date is in YYYY-MM-DD format
@@ -228,36 +210,36 @@ export default {
             console.error(`Invalid date format: ${this.filters.invoiceDate}`);
           }
         }
-        
+
         // Add other filters
         if (this.filters.customerId) {
           queryParams.append('customer_id', this.filters.customerId);
         }
-        
+
         if (this.filters.status) {
           queryParams.append('status', this.filters.status);
         }
-        
+
         // Log the full URL with query parameters for debugging
         const url = `/invoices${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-        
+
         const response = await axios.get(url);
-        
+        console.log(response.data); // Log the response data for debugging
         // Sort invoices in descending order
         this.invoices = response.data.sort((a, b) => {
           const dateA = new Date(a.invoice_date);
           const dateB = new Date(b.invoice_date);
-          
+
           // First sort by date (newest first)
           if (dateB - dateA !== 0) {
             return dateB - dateA;
           }
-          
+
           // If dates are the same, sort by financial year and sequence (newest first)
           if (a.financial_year !== b.financial_year) {
             return b.financial_year - a.financial_year;
           }
-          
+
           // Finally sort by sequence number
           return b.invoice_sequence - a.invoice_sequence;
         });
@@ -271,7 +253,7 @@ export default {
         this.loading = false;
       }
     },
-    
+
     async fetchCustomers() {
       try {
         const response = await axios.get('/customers');
@@ -318,26 +300,35 @@ export default {
     async viewInvoice(invoice) {
       try {
         this.loading = true;
-        
-        // Fetch required data
+
+        // Add debug logs
+        console.log('Invoice to view:', invoice);
+
         const [customerData, invoiceDetails, customerRates] = await Promise.all([
           this.getCustomerById(invoice.customer_id),
           this.getInvoiceDetails(invoice.id),
           this.getCustomerRates(invoice.customer_id)
         ]);
 
-        // Process invoice items similar to generateTaxInvoice
+        // Add debug logs
+        // console.log('Customer Data:', customerData);
+        // console.log('Invoice Details:', invoiceDetails);
+        // console.log('Customer Rates:', customerRates);
+
+        // Process invoice items
         const itemsData = invoiceDetails.items.map(item => {
-          // Find customer rate for this plate size
-          const customerRate = customerRates.find(rate => 
+          // Add debug log for each item
+          console.log('Processing item:', item);
+
+          const customerRate = customerRates.find(rate =>
             rate.plate_size_id === item.plate_size_id
           );
-          
-          // Get base rates
+
+          // Add debug log for found rate
+          // console.log('Found customer rate:', customerRate);
+
           const plateRate = customerRate?.plate_rate || 0;
           const bakingRate = customerRate?.baking_rate || 0;
-
-          // Check if item includes baking
           const hasBaking = item.description.toLowerCase().includes('baking');
 
           return {
@@ -352,9 +343,14 @@ export default {
             rate: hasBaking ? plateRate + bakingRate : plateRate,
             amount: item.amount,
             description: item.description,
-            withBaking: hasBaking
+            withBaking: hasBaking,
+            // Add empty jobs array to prevent undefined error
+            jobs: [] // Add this line
           };
         });
+
+        // Add debug log for final items data
+        // console.log('Final Items Data:', itemsData);
 
         // Format invoice data
         const formattedInvoiceData = {
@@ -368,11 +364,44 @@ export default {
           grand_total: invoiceDetails.grand_total
         };
 
+        const transformData = async (itemsData) => {
+          // Assuming you have a function to fetch job details by job_id
+          const getJobDetails = async (jobId) => {
+            // Replace this with your actual API call or database query
+            return {
+              job_id: jobId,
+              quantity: 1,
+              job_name: "Job Name", // This should come from your database
+              remark: "",
+              challan_no: jobId // This should come from your database
+            };
+          };
+
+          const transformedData = await Promise.all(itemsData.map(async (item) => {
+            // Fetch job details for each job ID
+            const jobPromises = item.jobIds.map(jobId => getJobDetails(jobId));
+            const jobs = await Promise.all(jobPromises);
+
+            // Remove .0 from plateSize if present
+            const plateSize = item.plateSize.replace('.0', '');
+
+            return {
+              ...item,
+              plateSize,
+              jobs
+            };
+          }));
+
+          return transformedData;
+        };
+
+        const finalData = await transformData(itemsData);
+
         // Generate PDF without auto-printing
         await printTaxInvoice(
           formattedInvoiceData,
           customerData,
-          itemsData,
+          finalData,
           customerRates,
           false // Don't auto-print
         );
@@ -387,7 +416,7 @@ export default {
     async printInvoice(invoice) {
       try {
         this.loading = true;
-        
+
         // Fetch required data
         const [customerData, invoiceDetails, customerRates] = await Promise.all([
           this.getCustomerById(invoice.customer_id),
@@ -398,10 +427,10 @@ export default {
         // Process invoice items similar to generateTaxInvoice
         const itemsData = invoiceDetails.items.map(item => {
           // Find customer rate for this plate size
-          const customerRate = customerRates.find(rate => 
+          const customerRate = customerRates.find(rate =>
             rate.plate_size_id === item.plate_size_id
           );
-          
+
           // Get base rates
           const plateRate = customerRate?.plate_rate || 0;
           const bakingRate = customerRate?.baking_rate || 0;
@@ -437,11 +466,44 @@ export default {
           grand_total: invoiceDetails.grand_total
         };
 
+                const transformData = async (itemsData) => {
+          // Assuming you have a function to fetch job details by job_id
+          const getJobDetails = async (jobId) => {
+            // Replace this with your actual API call or database query
+            return {
+              job_id: jobId,
+              quantity: 1,
+              job_name: "Job Name", // This should come from your database
+              remark: "",
+              challan_no: jobId // This should come from your database
+            };
+          };
+
+          const transformedData = await Promise.all(itemsData.map(async (item) => {
+            // Fetch job details for each job ID
+            const jobPromises = item.jobIds.map(jobId => getJobDetails(jobId));
+            const jobs = await Promise.all(jobPromises);
+
+            // Remove .0 from plateSize if present
+            const plateSize = item.plateSize.replace('.0', '');
+
+            return {
+              ...item,
+              plateSize,
+              jobs
+            };
+          }));
+
+          return transformedData;
+        };
+
+        const finalData = await transformData(itemsData);
+
         // Generate PDF with auto-printing enabled
         await printTaxInvoice(
           formattedInvoiceData,
           customerData,
-          itemsData,
+          finalData,
           customerRates,
           true // Auto-print enabled
         );
@@ -460,7 +522,7 @@ export default {
       if (customer) {
         return customer;
       }
-      
+
       // Otherwise fetch from API
       try {
         const response = await axios.get(`/customers/${customerId}`);
@@ -491,12 +553,12 @@ export default {
     async updateStatus(invoice) {
       try {
         const newStatus = invoice.status === 'paid' ? 'unpaid' : 'paid';
-        
+
         // Use the new PATCH endpoint
         await axios.patch(`/invoices/${invoice.id}/status`, {
           status: newStatus
         });
-        
+
         this.fetchInvoices();
       } catch (error) {
         console.error('Error updating invoice status:', error);
@@ -520,19 +582,19 @@ export default {
     },
     showEmailModal(invoice) {
       this.selectedInvoice = invoice;
-      
+
       // Get customer details
       this.getCustomerById(invoice.customer_id).then(customer => {
         this.selectedCustomerName = customer.company_name;
         this.selectedCustomerEmail = customer.email || '';
-        
+
         // Pre-populate email data
         this.emailData = {
-          subject: `Invoice ${invoice.invoice_number} from New Way Typesetters and Processors`, 
+          subject: `Invoice ${invoice.invoice_number} from New Way Typesetters and Processors`,
           message: `Dear ${customer.contact_person || 'Customer'},\n\nPlease find attached invoice ${invoice.invoice_number} for your records.\n\nThank you for your business.\n\nRegards,\nAccounts Department\nNew Way Typesetters and Processors`,
           includePdf: true
         };
-        
+
         this.showEmailModalFlag = true;
       });
     },
@@ -550,7 +612,7 @@ export default {
     async sendEmail() {
       try {
         this.isSending = true;
-        
+
         // Fetch required data
         const [customerData, invoiceDetails, customerRates] = await Promise.all([
           this.getCustomerById(this.selectedInvoice.customer_id),
@@ -561,10 +623,10 @@ export default {
         // Process invoice items
         const itemsData = invoiceDetails.items.map(item => {
           // Find customer rate for this plate size
-          const customerRate = customerRates.find(rate => 
+          const customerRate = customerRates.find(rate =>
             rate.plate_size_id === item.plate_size_id
           );
-          
+
           // Get base rates
           const plateRate = customerRate?.plate_rate || 0;
           const bakingRate = customerRate?.baking_rate || 0;
@@ -600,11 +662,44 @@ export default {
           grand_total: invoiceDetails.grand_total
         };
 
+                const transformData = async (itemsData) => {
+          // Assuming you have a function to fetch job details by job_id
+          const getJobDetails = async (jobId) => {
+            // Replace this with your actual API call or database query
+            return {
+              job_id: jobId,
+              quantity: 1,
+              job_name: "Job Name", // This should come from your database
+              remark: "",
+              challan_no: jobId // This should come from your database
+            };
+          };
+
+          const transformedData = await Promise.all(itemsData.map(async (item) => {
+            // Fetch job details for each job ID
+            const jobPromises = item.jobIds.map(jobId => getJobDetails(jobId));
+            const jobs = await Promise.all(jobPromises);
+
+            // Remove .0 from plateSize if present
+            const plateSize = item.plateSize.replace('.0', '');
+
+            return {
+              ...item,
+              plateSize,
+              jobs
+            };
+          }));
+
+          return transformedData;
+        };
+
+        const finalData = await transformData(itemsData);
+
         // Generate PDF
         const pdfBlob = await printTaxInvoice(
           formattedInvoiceData,
           customerData,
-          itemsData,
+          finalData,
           customerRates,
           false // Don't auto-print
         );
@@ -643,7 +738,7 @@ export default {
     }
   },
   mounted() {
-    this.userRole = this.$store?.state?.user?.role || ''; 
+    this.userRole = this.$store?.state?.user?.role || '';
     this.fetchInvoices();
     this.fetchCustomers();
   },

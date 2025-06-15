@@ -167,59 +167,84 @@
 
     <!-- Bulk Invoice Generation Modal -->
     <div v-if="showBulkInvoiceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-1/2">
-        <h2 class="text-xl font-bold mb-4">Generate Invoices for All Customers</h2>
-        <p class="mb-4">Please confirm the details for bulk invoice generation:</p>
+      <div class="bg-white p-6 rounded-lg shadow-lg w-2/3 max-h-[80vh] overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4">Generate Invoices for Selected Customers</h2>
         
-        <div class="mb-6 bg-gray-100 p-4 rounded">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="font-semibold">Starting Invoice Number:</div>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <!-- Date inputs -->
+          <div>
+            <div class="font-semibold mb-2">Start Date:</div>
+            <input 
+              type="date" 
+              v-model="bulkInvoiceStartDate"
+              class="w-full p-2 border border-gray-300 rounded"
+            />
+          </div>
+          <div>
+            <div class="font-semibold mb-2">End Date:</div>
+            <input 
+              type="date" 
+              v-model="bulkInvoiceEndDate"
+              class="w-full p-2 border border-gray-300 rounded"
+            />
+          </div>
+          <div>
+            <div class="font-semibold mb-2">Invoice Date:</div>
+            <input 
+              type="date" 
+              v-model="bulkInvoiceDate"
+              class="w-full p-2 border border-gray-300 rounded"
+            />
+          </div>
+          <div>
+            <div class="font-semibold mb-2">Starting Invoice Number:</div>
             <div class="flex items-center">
-              <span class="p-1 bg-gray-200 border border-gray-300 rounded-l">{{ invoicePrefix }}</span>
+              <span class="p-2 bg-gray-200 border border-gray-300 rounded-l">{{ invoicePrefix }}</span>
               <input 
                 v-model="invoiceSequence"
                 type="text" 
-                class="w-1/4 p-1 border border-gray-300 rounded-r"
+                class="w-1/4 p-2 border border-gray-300 rounded-r"
                 maxlength="5"
                 :class="{'border-red-500': !isValidSequence || isNumberTooSmall}"
               />
             </div>
-            <div v-if="!isValidSequence" class="col-span-2 text-red-500 text-sm mt-1">
-              Invoice sequence must be a number
-            </div>
-            <div v-else-if="isNumberTooSmall" class="col-span-2 text-red-500 text-sm mt-1">
-              Invoice sequence cannot be smaller than the latest invoice ({{ latestSequenceNumber }})
-            </div>
+          </div>
+        </div>
 
-            <div class="font-semibold">Start Date:</div>
-            <div>
-              <input 
-                type="date" 
-                v-model="bulkInvoiceStartDate"
-                class="w-full p-1 border border-gray-300 rounded"
-              />
+        <!-- Customer selection -->
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-semibold">Select Customers</h3>
+            <div class="space-x-2">
+              <button @click="selectAllCustomers" class="text-sm text-blue-600 hover:text-blue-800">
+                Select All
+              </button>
+              <span class="text-gray-400">|</span>
+              <button @click="deselectAllCustomers" class="text-sm text-blue-600 hover:text-blue-800">
+                Deselect All
+              </button>
             </div>
-            
-            <div class="font-semibold">End Date:</div>
-            <div>
-              <input 
-                type="date" 
-                v-model="bulkInvoiceEndDate"
-                class="w-full p-1 border border-gray-300 rounded"
+          </div>
+          <div class="border border-gray-200 rounded max-h-60 overflow-y-auto p-2">
+            <div 
+              v-for="customer in customers" 
+              :key="customer.id"
+              class="flex items-center p-2 hover:bg-gray-50"
+            >
+              <input
+                type="checkbox"
+                :id="'customer-' + customer.id"
+                v-model="selectedCustomersForBulk"
+                :value="customer.id"
+                class="h-4 w-4 text-blue-600 rounded border-gray-300"
               />
-            </div>
-
-            <div class="font-semibold">Invoice Date:</div>
-            <div>
-              <input 
-                type="date" 
-                v-model="bulkInvoiceDate"
-                class="w-full p-1 border border-gray-300 rounded"
-              />
+              <label :for="'customer-' + customer.id" class="ml-2 cursor-pointer flex-1">
+                {{ customer.company_name }}
+              </label>
             </div>
           </div>
         </div>
-        
+
         <div class="flex justify-end space-x-4">
           <button @click="showBulkInvoiceModal = false" class="btn-secondary">
             Cancel
@@ -227,9 +252,9 @@
           <button 
             @click="generateBulkInvoices" 
             class="btn-primary"
-            :disabled="!isValidBulkDateRange || !isValidInvoiceNumber"
+            :disabled="!isValidBulkDateRange || !isValidInvoiceNumber || selectedCustomersForBulk.length === 0 || isBulkGenerating"
           >
-            Generate Invoices
+            {{ isBulkGenerating ? 'Generating...' : 'Generate Invoices' }}
           </button>
         </div>
       </div>
@@ -342,7 +367,8 @@ export default {
       bulkInvoiceStartDate: '',
       bulkInvoiceEndDate: '',
       bulkInvoiceDate: '', // For storing invoice date for bulk generation
-      isBulkGenerating: false
+      isBulkGenerating: false,
+      selectedCustomersForBulk: [], // Array to store selected customer IDs
     };
   },
   computed: {
@@ -539,7 +565,7 @@ export default {
                   bakingRate: bakingRate,
                   rate: plateRate,
                   amount: regularQuantity * plateRate,
-                  jobs: regularJobs
+                  jobs: regularJobs // Include the full jobs array with challan numbers
                 });
               }
             }
@@ -561,8 +587,7 @@ export default {
                   bakingRate: bakingRate,
                   rate: plateRate + bakingRate,
                   amount: bakingQuantity * (plateRate + bakingRate),
-                  jobs: bakingJobs,
-                  withBaking: true
+                  jobs: bakingJobs // Include the full jobs array with challan numbers
                 });
               }
             }
@@ -733,6 +758,19 @@ export default {
       }
       
       try {
+        // Log the data being sent
+        console.log('Preview Items:', this.previewItemsData);
+        console.log('Customer Rates:', this.customerRates);
+        console.log('Selected Customer:', this.selectedCustomer);
+        
+        // Verify we have the required data
+        if (!this.previewItemsData.length) {
+          throw new Error('No preview items available');
+        }
+        if (!this.customerRates.length) {
+          throw new Error('No customer rates available');
+        }
+
         this.showInvoiceModal = false;
         
         // Use the formatted invoice number
@@ -745,7 +783,7 @@ export default {
         // Calculate totals using the new method
         const totals = this.calculateTotal();
 
-        // Save invoice to database
+        // Log the invoice data being saved
         const invoiceToSave = {
           invoice_number: invoiceNumber,
           financial_year: financialYear,
@@ -767,13 +805,16 @@ export default {
             quantity: item.quantity,
             rate: item.rate,
             amount: item.amount,
-            job_ids: item.jobIds,
+            jobs: item.jobs, // Include full jobs array with challan numbers
             hasBaking: item.jobs.some(job => job.remark && job.remark.toLowerCase().includes('baking'))
           }))
         };
 
-        // Send to API
-        await axios.post('/invoices', invoiceToSave);
+        console.log('Invoice to save:', invoiceToSave);
+
+        // Send to API and log the response
+        const response = await axios.post('/invoices', invoiceToSave);
+        console.log('API Response:', response.data);
 
         // Update the invoice data with the formatted invoice number and calculated totals
         this.previewInvoiceData = {
@@ -786,16 +827,29 @@ export default {
         };
         
         // Generate the actual PDF invoice
-        printTaxInvoice(
+        console.log('Generating PDF with data:', {
+          invoiceData: this.previewInvoiceData,
+          customer: this.selectedCustomer,
+          items: this.previewItemsData,
+          rates: this.customerRates
+        });
+        const pdfResult = await printTaxInvoice(
           this.previewInvoiceData,
           this.selectedCustomer,
           this.previewItemsData,
           this.customerRates,
           true
         );
+
+        console.log('PDF Generation Result:', pdfResult);
+        
       } catch (error) {
-        console.error('Error generating tax invoice:', error);
-        alert('Error generating tax invoice. See console for details.');
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          stack: error.stack
+        });
+        alert(`Error generating tax invoice: ${error.message}`);
       }
     },
     
@@ -838,7 +892,7 @@ export default {
       }
     },
     async generateBulkInvoices() {
-      if (!this.isValidBulkDateRange || this.isBulkGenerating) return;
+      if (!this.isValidBulkDateRange || this.isBulkGenerating || this.selectedCustomersForBulk.length === 0) return;
 
       try {
         this.isBulkGenerating = true;
@@ -848,19 +902,16 @@ export default {
           skipped: []
         };
 
-        // Ensure plate sizes are loaded first
-        if (!this.plateSizes.length) {
-          await this.fetchPlateSizes();
-        }
-
-        if (!this.plateSizes.length) {
-          throw new Error('Failed to load plate sizes');
-        }
-
+        // Initialize current sequence from the component data
         let currentSequence = parseInt(this.invoiceSequence, 10);
 
-        // Process each customer
-        for (const customer of this.customers) {
+        // Filter customers based on selection
+        const selectedCustomers = this.customers.filter(customer => 
+          this.selectedCustomersForBulk.includes(customer.id)
+        );
+
+        // Process each selected customer
+        for (const customer of selectedCustomers) {
           try {
             // Reset previewItemsData for each customer
             this.previewItemsData = [];
@@ -998,7 +1049,7 @@ export default {
                       bakingRate: bakingRate,
                       rate: plateRate,
                       amount: regularQuantity * plateRate,
-                      jobs: regularJobs
+                      jobs: regularJobs // Include the full jobs array with challan numbers
                     });
                   }
                 }
@@ -1020,7 +1071,7 @@ export default {
                       bakingRate: bakingRate,
                       rate: plateRate + bakingRate,
                       amount: bakingQuantity * (plateRate + bakingRate),
-                      jobs: bakingJobs,
+                      jobs: bakingJobs, // Include the full jobs array with challan numbers
                       withBaking: true
                     });
                   }
@@ -1095,14 +1146,19 @@ export default {
                 quantity: item.quantity,
                 rate: item.rate,
                 amount: item.amount,
-                job_ids: item.jobIds,
+                jobs: item.jobs, // Include full jobs array with challan numbers
                 hasBaking: item.jobs.some(job => job.remark && job.remark.toLowerCase().includes('baking'))
               }))
             };
 
             await axios.post('/invoices', invoiceToSave);
             results.success.push(customer.company_name);
+            
+            // Increment the sequence number after successful invoice creation
             currentSequence++;
+            
+            // Update the component's invoice sequence
+            this.invoiceSequence = currentSequence.toString();
 
           } catch (error) {
             console.error(`Error generating invoice for ${customer.company_name}:`, error);
@@ -1129,6 +1185,14 @@ export default {
         this.isBulkGenerating = false;
       }
     },
+    selectAllCustomers() {
+      this.selectedCustomersForBulk = this.customers.map(customer => customer.id);
+    },
+
+    deselectAllCustomers() {
+      this.selectedCustomersForBulk = [];
+    },
+
     async openBulkInvoiceModal() {
       try {
         // Make sure plate sizes are loaded
@@ -1141,6 +1205,9 @@ export default {
         
         // Generate invoice number
         await this.generateFormattedInvoiceNumber();
+        
+        // Select all customers by default
+        this.selectAllCustomers();
         
         // Show the modal
         this.showBulkInvoiceModal = true;

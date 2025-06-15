@@ -199,6 +199,7 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
         let total = 0;
 
         doc.setFontSize(fontSizeTableBody);
+        console.log('Adding table data for items:', items);
         items.forEach(item => {
             const startY = y;
             doc.setFont(fontNormal, 'normal');
@@ -216,11 +217,14 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
             y += 4;
 
             doc.setFont(fontNormal, 'normal');
-            const jobsList = item.jobIds.join(', ');
+            // Replace job IDs with challan numbers
+            
+            const challansList = [...new Set(item.jobs.map(job => job.challan_no))].join(', ');
+            console.log('Challans List:', challansList);
             const maxWidth = tableXPositions[2] - tableXPositions[1] - 4;
-            const jobLines = doc.splitTextToSize(jobsList, maxWidth);
+            const challanLines = doc.splitTextToSize(`${challansList}`, maxWidth);
 
-            jobLines.forEach(line => {
+            challanLines.forEach(line => {
                 doc.text(line, tableXPositions[1] + 2, y);
                 y += 3.5;
             });

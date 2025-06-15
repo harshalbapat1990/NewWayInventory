@@ -686,6 +686,9 @@ def register_routes(app):
             
             # Add invoice items
             for item_data in data['items']:
+                # Extract unique challan numbers from the jobs array
+                challan_numbers = list(set(job['challan_no'] for job in item_data.get('jobs', [])))
+                
                 new_item = InvoiceItem(
                     invoice_id=new_invoice.id,
                     plate_size_id=item_data['plate_size_id'],
@@ -694,10 +697,10 @@ def register_routes(app):
                     quantity=item_data['quantity'],
                     rate=item_data['rate'],
                     amount=item_data['amount'],
-                    job_ids=','.join(map(str, item_data.get('job_ids', [])))
+                    job_ids=','.join(map(str, challan_numbers))  # Store challan numbers instead of job IDs
                 )
                 db.session.add(new_item)
-            
+        
             db.session.commit()
             return jsonify(new_invoice.serialize()), 201
         
