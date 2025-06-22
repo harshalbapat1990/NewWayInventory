@@ -466,7 +466,7 @@ export default {
           grand_total: invoiceDetails.grand_total
         };
 
-                const transformData = async (itemsData) => {
+        const transformData = async (itemsData) => {
           // Assuming you have a function to fetch job details by job_id
           const getJobDetails = async (jobId) => {
             // Replace this with your actual API call or database query
@@ -662,7 +662,7 @@ export default {
           grand_total: invoiceDetails.grand_total
         };
 
-                const transformData = async (itemsData) => {
+        const transformData = async (itemsData) => {
           // Assuming you have a function to fetch job details by job_id
           const getJobDetails = async (jobId) => {
             // Replace this with your actual API call or database query

@@ -218,7 +218,16 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
             doc.setFont(fontNormal, 'normal');
             // Replace job IDs with challan numbers
             
-            const challansList = [...new Set(item.jobs.map(job => job.challan_no))].join(', ');
+            const challansList = [...new Set(item.jobs.map(job => job.challan_no))]
+                .sort((a, b) => {
+                    // If challan_no is numeric, sort numerically, else lexicographically
+                    const numA = Number(a), numB = Number(b);
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        return numA - numB;
+                    }
+                    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                })
+                .join(', ');
             // console.log('Challans List:', challansList);
             const maxWidth = tableXPositions[2] - tableXPositions[1] - 4;
             const challanLines = doc.splitTextToSize(`${challansList}`, maxWidth);
