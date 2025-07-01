@@ -13,9 +13,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from functools import wraps
 import os
 import sys
-import base64
 from flask_mail import Mail, Message
-import tempfile
 
 # Initialize Mail
 mail = Mail()
@@ -659,6 +657,19 @@ def register_routes(app):
         if request.method == 'POST':
             data = request.get_json()
             
+            # Check if invoice number already exists
+            existing_invoice = Invoice.query.filter_by(invoice_number=data['invoice_number']).first()
+            if existing_invoice:
+                return jsonify({
+                    'error': f'Invoice number {data["invoice_number"]} already exists',
+                    'existing_invoice': {
+                        'id': existing_invoice.id,
+                        'customer_name': existing_invoice.customer.company_name,
+                        'invoice_date': existing_invoice.invoice_date.isoformat(),
+                        'grand_total': existing_invoice.grand_total
+                    }
+                }), 409  # 409 Conflict status code
+        
             # Parse financial year and sequence from invoice_number (format: 2526/GST/34)
             invoice_parts = data['invoice_number'].split('/')
             financial_year = invoice_parts[0]
@@ -704,13 +715,17 @@ def register_routes(app):
             db.session.commit()
             return jsonify(new_invoice.serialize()), 201
         
-        # Handle GET with filters
+        # Handle GET with filters and pagination
         invoice_number = request.args.get('invoice_number')
         customer_id = request.args.get('customer_id')
         invoice_date = request.args.get('date')
         status = request.args.get('status')
         
-        # print(f"DEBUG: Filtering invoices - invoice_number={invoice_number}, customer_id={customer_id}, date={invoice_date}, status={status}")
+        # Pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 50, type=int), 50)  # Max 50 per page
+        
+        # print(f"DEBUG: Filtering invoices - invoice_number={invoice_number}, customer_id={customer_id}, date={invoice_date}, status={status}, page={page}, per_page={per_page}")
         
         query = Invoice.query
         
@@ -733,12 +748,33 @@ def register_routes(app):
         if status:
             query = query.filter(Invoice.status == status)
         
-        # Print the SQL query
-        # print(f"DEBUG: SQL Query: {query}")
+        # Order by newest first (financial year desc, sequence desc, then by date desc)
+        query = query.order_by(
+            Invoice.financial_year.desc(),
+            Invoice.invoice_sequence.desc(),
+            Invoice.invoice_date.desc()
+        )
         
-        # Default sort by newest first
-        invoices = query.order_by(Invoice.invoice_date.desc()).all()
-        return jsonify([invoice.serialize() for invoice in invoices]), 200
+        # Apply pagination
+        pagination = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+        
+        return jsonify({
+            'invoices': [invoice.serialize() for invoice in pagination.items],
+            'pagination': {
+                'page': pagination.page,
+                'pages': pagination.pages,
+                'per_page': pagination.per_page,
+                'total': pagination.total,
+                'has_prev': pagination.has_prev,
+                'has_next': pagination.has_next,
+                'prev_num': pagination.prev_num,
+                'next_num': pagination.next_num
+            }
+        }), 200
 
     @app.route('/api/invoices/<int:id>', methods=['GET', 'PUT', 'DELETE'])
     @role_required(['accountant', 'admin'])
@@ -918,6 +954,24 @@ def register_routes(app):
             import traceback
             print(f"Traceback: {traceback.format_exc()}")
             return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+    @app.route('/api/invoices/check-number/<invoice_number>', methods=['GET'])
+    @role_required(['accountant', 'admin'])
+    def check_invoice_number_exists(invoice_number):
+        """Check if an invoice with the given number already exists"""
+        existing_invoice = Invoice.query.filter_by(invoice_number=invoice_number).first()
+        
+        if existing_invoice:
+            return jsonify({
+                'exists': True,
+                'invoice_id': existing_invoice.id,
+                'invoice_number': existing_invoice.invoice_number,
+                'customer_name': existing_invoice.customer.company_name,
+                'invoice_date': existing_invoice.invoice_date.isoformat(),
+                'grand_total': existing_invoice.grand_total
+            }), 200
+        else:
+            return jsonify({'exists': False}), 404
 
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
