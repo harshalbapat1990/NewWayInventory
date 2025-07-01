@@ -197,9 +197,26 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
     function addTableData(items) {
         let srNo = 1;
         let total = 0;
+        let itemsOnCurrentPage = 0;
+        const maxItemsPerPage = 10;
 
         doc.setFontSize(fontSizeTableBody);
         items.forEach(item => {
+            // Check if we need a new page before adding this item
+            if (itemsOnCurrentPage >= maxItemsPerPage) {
+                // Add footer to current page before creating new page
+                addPageFooter();
+                
+                doc.addPage();
+                y = margin;
+                
+                // Add header and invoice details to new page
+                addHeader();
+                addInvoiceDetails();
+                addTableHeaders();
+                itemsOnCurrentPage = 0;
+            }
+
             const startY = y;
             doc.setFont(fontNormal, 'normal');
             doc.text(srNo.toString(), tableXPositions[0] + 2, y);
@@ -216,11 +233,9 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
             y += 4;
 
             doc.setFont(fontNormal, 'normal');
-            // Replace job IDs with challan numbers
             
             const challansList = [...new Set(item.jobs.map(job => job.challan_no))]
                 .sort((a, b) => {
-                    // If challan_no is numeric, sort numerically, else lexicographically
                     const numA = Number(a), numB = Number(b);
                     if (!isNaN(numA) && !isNaN(numB)) {
                         return numA - numB;
@@ -228,7 +243,7 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
                     return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
                 })
                 .join(', ');
-            // console.log('Challans List:', challansList);
+            
             const maxWidth = tableXPositions[2] - tableXPositions[1] - 4;
             const challanLines = doc.splitTextToSize(`${challansList}`, maxWidth);
 
@@ -240,57 +255,24 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
             doc.text('8442', (tableXPositions[2] + tableXPositions[3]) / 2, startY, { align: 'center' });
             doc.text(item.quantity.toString(), (tableXPositions[3] + tableXPositions[4]) / 2, startY, { align: 'center' });
 
-            let rate = 0;
-            if (item.plateSizeId && ratesData) {
-                if (typeof item.rate === 'number' && !isNaN(item.rate)) {
-                    const rateEntry = ratesData.find(r =>
-                        r.plate_size_id === item.plateSizeId
-                    );
-
-                    if (rateEntry) {
-                        const baseRate = parseFloat(rateEntry.plate_rate || 0);
-                        const bakingAddition = item.rateType === 'baking_rate' ?
-                            parseFloat(rateEntry.baking_rate || 0) : 0;
-                        rate = baseRate + bakingAddition;
-                        
-                        if (item.colours > 1) {
-                            rate = rate * (typeof item.colours === 'number' ? item.colours : 1);
-                        }
-                    } else {
-                        rate = parseFloat(item.rate || 0);
-                    }                   
-                } else {
-                    const rateEntry = ratesData.find(r =>
-                        r.plate_size_id === item.plateSizeId
-                    );
-
-                    if (rateEntry) {
-                        const baseRate = parseFloat(rateEntry.plate_rate || 0);
-                        const bakingAddition = item.rateType === 'baking_rate' ?
-                            parseFloat(rateEntry.baking_rate || 0) : 0;
-                        rate = baseRate + bakingAddition;
-                        
-                        if (item.colours > 1) {
-                            rate = rate * (typeof item.colours === 'number' ? item.colours : 1);
-                        }
-                    } else {
-                        rate = parseFloat(item.rate || 0);
-                    }
-                }
+            // Handle rate calculation based on data source
+            let rateForInvoice;
+            if (item.useStoredRate) {
+                // For past invoices with stored rates, use the rate as-is (already includes colour multiplication)
+                rateForInvoice = item.rate;
             } else {
-                rate = parseFloat(item.rate || 0);
+                // For new invoices or fallback, calculate per-plate rate * number of colours
+                const perPlateRate = (typeof item.rate === 'number' && !isNaN(item.rate)) ? item.rate : parseFloat(item.rate || 0);
+                const numColours = item.colours || 1;
+                rateForInvoice = perPlateRate * numColours;
             }
 
-            if (isNaN(rate)) {
-                console.warn(`Invalid rate for item: ${JSON.stringify(item)}`);
-                rate = 0;
-            }
-
-            const rateFormatted = rate.toFixed(1);
+            const rateFormatted = rateForInvoice.toFixed(1);
             doc.text(`${rateFormatted}`, (tableXPositions[4] + tableXPositions[5]) / 2, startY, { align: 'center' });
             doc.text(`/ Unit`, (tableXPositions[5] + tableXPositions[6]) / 2, startY, { align: 'center' });
 
-            const amount = (item.quantity * rate).toFixed(1);
+            // Amount calculation
+            const amount = item.quantity * rateForInvoice;
             total += parseFloat(amount);
             doc.text(`${amount}`, tableXPositions[7] - 2, startY, { align: 'right' });
 
@@ -308,13 +290,24 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
             doc.line(margin, y - 1, pageWidth - margin, y - 1);
             y += 4;
 
-            if (y + 15 > pageHeight - margin) {
-                doc.addPage();
-                y = margin + 10;
-                addTableHeaders();
-            }
-
+            // Increment items counter
+            itemsOnCurrentPage++;
             srNo++;
+
+            // Also check if we're running out of space on the page (original logic as backup)
+            if (y + 15 > pageHeight - 60) { // Leave space for footer
+                // Add footer to current page before creating new page
+                addPageFooter();
+                
+                doc.addPage();
+                y = margin;
+                
+                // Add header and invoice details to new page
+                addHeader();
+                addInvoiceDetails();
+                addTableHeaders();
+                itemsOnCurrentPage = 0;
+            }
         });
 
         return total;
@@ -615,24 +608,17 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
     }
 
     function generateFinalPDF() {
-        const y = pageHeight - 35;
-        const boxWidth = 90;
-        const boxHeight = 25;
-        const boxX = pageWidth - margin - boxWidth;
-        const boxY = y - 2;
-
         return new Promise((resolve) => {
             addWatermark().then(() => {
                 const signatureImageUrl = '/images/InvoiceSignature2.png';
-                // console.log('Using signature path:', signatureImageUrl);
-
                 const img = new Image();
                 img.crossOrigin = 'Anonymous';
 
                 img.onload = function() {
-                    // console.log('Signature loaded successfully', img.width, 'x', img.height);
-
                     addTotalsAndFooter(totalAmount);
+                    
+                    // Add footer to the final page AFTER all content is added
+                    addPageFooter();
 
                     try {
                         const originalAspectRatio = img.width / img.height;
@@ -642,11 +628,13 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
                         const signatureTextWidth = 40;
                         const xOffset = signatureTextPosition - signatureTextWidth - calculatedWidth + 10;
 
-                        doc.addImage(img, 'PNG', xOffset, y + 2, calculatedWidth, maxHeight);
-                        doc.text('Authorized Signatory', pageWidth - margin - 2, y + 20, { align: 'right' });
+                        // Position signature above the footer
+                        const signatureY = pageHeight - 35; // Adjust to be above footer
+                        doc.addImage(img, 'PNG', xOffset, signatureY + 2, calculatedWidth, maxHeight);
+                        doc.text('Authorized Signatory', pageWidth - margin - 2, signatureY + 20, { align: 'right' });
                     } catch (err) {
                         console.error('Failed to add signature:', err);
-                        doc.text('Authorized Signatory', pageWidth - margin - 2, y + 20, { align: 'right' });
+                        doc.text('Authorized Signatory', pageWidth - margin - 2, pageHeight - 35 + 20, { align: 'right' });
                     }
 
                     if (shouldPrint) {
@@ -659,6 +647,10 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
                 img.onerror = function() {
                     console.error('Failed to load signature image');
                     addTotalsAndFooter(totalAmount);
+                    
+                    // Add footer to the final page AFTER all content is added
+                    addPageFooter();
+                    
                     if (shouldPrint) {
                         doc.autoPrint();
                     }
@@ -669,6 +661,26 @@ export function printTaxInvoice(invoiceData, customerData, itemsData, ratesData,
                 img.src = signatureImageUrl;
             });
         });
+    }
+
+    function addPageFooter() {
+        const footerY = pageHeight - 5; // Move footer closer to bottom
+        
+        doc.setFontSize(8);
+        doc.setFont(fontNormal, 'normal');
+        
+        // Add page number
+        const pageCount = doc.internal.getNumberOfPages();
+        const currentPage = doc.internal.getCurrentPageInfo().pageNumber;
+        doc.text(`Page ${currentPage}`, pageWidth - margin, footerY, { align: 'right' });
+        
+        // Add company name
+        doc.text('NEW WAY TYPESETTERS & PROCESSORS', margin, footerY);
+        
+        // Add a line above footer
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.1);
+        doc.line(margin, footerY - 3, pageWidth - margin, footerY - 3);
     }
 
     addHeader();

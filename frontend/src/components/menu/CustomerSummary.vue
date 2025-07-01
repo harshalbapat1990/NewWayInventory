@@ -70,30 +70,26 @@
 
     <!-- Modal for Tax Invoice Number Confirmation -->
     <div v-if="showInvoiceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-1/2">
+      <div class="bg-white p-6 shadow-lg w-2/3 max-h-[85vh] overflow-y-auto">
         <h2 class="text-xl font-bold mb-4">Generate Tax Invoice</h2>
         <p class="mb-4">You are about to generate a tax invoice with the following details:</p>
-        
+
         <div class="mb-6 bg-gray-100 p-4 rounded">
           <div class="grid grid-cols-2 gap-2">
             <div class="font-semibold">Invoice Number:</div>
             <div class="flex items-center">
               <span class="p-1 bg-gray-200 border border-gray-300 rounded-l">{{ invoicePrefix }}</span>
-                <input 
+              <input 
                 v-model="invoiceSequence"
                 type="text" 
                 class="w-1/4 p-1 border border-gray-300 rounded-r"
                 maxlength="5"
-                :class="{'border-red-500': !isValidSequence || isNumberTooSmall}"
-                />
+                :class="{'border-red-500': !isValidSequence}"
+              />
             </div>
             <div v-if="!isValidSequence" class="col-span-2 text-red-500 text-sm mt-1">
               Invoice sequence must be a number
             </div>
-            <div v-else-if="isNumberTooSmall" class="col-span-2 text-red-500 text-sm mt-1">
-              Invoice sequence cannot be smaller than the latest invoice ({{ latestSequenceNumber }})
-            </div>
-            
             <div class="font-semibold">Invoice Date:</div>
             <div>
               <input 
@@ -102,54 +98,64 @@
                 class="w-full p-1 border border-gray-300 rounded"
               />
             </div>
-            
             <div class="font-semibold">Customer:</div>
             <div>{{ selectedCustomer.company_name }}</div>
-            
             <div class="font-semibold">Date Range:</div>
             <div>{{ startDate }} to {{ endDate }}</div>
           </div>
         </div>
-        
-        <!-- <div class="mb-4 mt-4">
-          <h3 class="text-lg font-semibold">Invoice Items</h3>
-          <div class="overflow-x-auto mt-2">
+
+        <!-- Summary Table (as in summary, with rate for each item) -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-2">Summary</h3>
+          <div class="overflow-x-auto">
             <table class="min-w-full border border-gray-300">
               <thead>
                 <tr class="bg-gray-100">
-                  <th class="px-4 py-2 border border-gray-300">Plate Size</th>
-                  <th class="px-4 py-2 border border-gray-300">Colours</th>
-                  <th class="px-4 py-2 border border-gray-300">Quantity</th>
-                  <th class="px-4 py-2 border border-gray-300">Rate Type</th>
-                  <th class="px-4 py-2 border border-gray-300">Rate (₹)</th>
-                  <th class="px-4 py-2 border border-gray-300">Amount (₹)</th>
+                  <th class="px-2 py-1 border border-gray-300">Size</th>
+                  <th class="px-2 py-1 border border-gray-300">Colour</th>
+                  <th class="px-2 py-1 border border-gray-300">Challan No</th>
+                  <th class="px-2 py-1 border border-gray-300">Job ID</th>
+                  <th class="px-2 py-1 border border-gray-300">Sets</th>
+                  <th class="px-2 py-1 border border-gray-300">Job Name</th>
+                  <th class="px-2 py-1 border border-gray-300">Remark</th>
+                  <th class="px-2 py-1 border border-gray-300">Rate (₹)</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in previewItemsData" :key="index" class="border-t border-gray-300">
-                  <td class="px-4 py-2 border border-gray-300">{{ item.plateSize }}</td>
-                  <td class="px-4 py-2 border border-gray-300">{{ item.colours }}</td>
-                  <td class="px-4 py-2 border border-gray-300">{{ item.quantity }}</td>
-                  <td class="px-4 py-2 border border-gray-300">
-                    <select v-model="item.rateType" class="border rounded px-2 py-1 w-full" @change="updateItemAmount(item)">
-                      <option value="plate_rate">Plate Rate</option>
-                      <option value="baking_rate">Baking Rate</option>
-                    </select>
-                  </td>
-                  <td class="px-4 py-2 border border-gray-300">{{ item.rate }}</td>
-                  <td class="px-4 py-2 border border-gray-300">{{ item.amount.toFixed(2) }}</td>
-                </tr>
+                <template v-for="(plateGroup, plateIndex) in groupedChallans" :key="plateIndex">
+                  <template v-for="(colourGroup, colourIndex) in plateGroup.colours" :key="colourIndex">
+                    <template v-for="(challanGroup, challanIndex) in colourGroup.challans" :key="challanIndex">
+                      <template v-for="(job, jobIndex) in challanGroup.jobs" :key="jobIndex">
+                        <tr>
+                          <td class="px-2 py-1 border border-gray-300">{{ plateGroup.size }}</td>
+                          <td class="px-2 py-1 border border-gray-300">{{ colourGroup.colour }}</td>
+                          <td class="px-2 py-1 border border-gray-300">{{ challanGroup.challan_no }}</td>
+                          <td class="px-2 py-1 border border-gray-300">{{ job.job_id }}</td>
+                          <td class="px-2 py-1 border border-gray-300">{{ job.quantity }}</td>
+                          <td class="px-2 py-1 border border-gray-300">{{ job.job_name }}</td>
+                          <td class="px-2 py-1 border border-gray-300">{{ job.remark }}</td>
+                          <td class="px-2 py-1 border border-gray-300">
+                            <!-- Editable rate input -->
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              class="w-20 border border-gray-300 rounded px-1 py-0.5"
+                              :value="findJobRateBinding(plateGroup.size, colourGroup.colour, job.job_id)"
+                              @input="onJobRateInput(plateGroup.size, colourGroup.colour, job.job_id, $event.target.value)"
+                            />
+                          </td>
+                        </tr>
+                      </template>
+                    </template>
+                  </template>
+                </template>
               </tbody>
-              <tfoot>
-                <tr class="bg-gray-100 font-semibold">
-                  <td colspan="5" class="px-4 py-2 border border-gray-300 text-right">Total:</td>
-                  <td class="px-4 py-2 border border-gray-300">{{ calculateTotal().toFixed(2) }}</td>
-                </tr>
-              </tfoot>
             </table>
           </div>
-        </div> -->
-        
+        </div>
+
         <div class="flex justify-end space-x-4">
           <button @click="cancelInvoiceGeneration" class="btn-secondary">
             Cancel
@@ -205,7 +211,7 @@
                 type="text" 
                 class="w-1/4 p-2 border border-gray-300 rounded-r"
                 maxlength="5"
-                :class="{'border-red-500': !isValidSequence || isNumberTooSmall}"
+                :class="{'border-red-500': !isValidSequence}"
               />
             </div>
           </div>
@@ -384,14 +390,8 @@ export default {
     isValidSequence() {
       return /^\d+$/.test(this.invoiceSequence);
     },
-    isNumberTooSmall() {
-      if (!this.isValidSequence) return false;
-      
-      const sequenceNumber = parseInt(this.invoiceSequence, 10);
-      return sequenceNumber < this.latestSequenceNumber;
-    },
     isValidInvoiceNumber() {
-      return this.isValidSequence && !this.isNumberTooSmall;
+      return this.isValidSequence; // Remove the isNumberTooSmall check
     },
     isValidBulkDateRange() {
       return this.bulkInvoiceStartDate && this.bulkInvoiceEndDate && 
@@ -640,33 +640,19 @@ export default {
     },
     
     calculateTotal() {
-      // Calculate subtotal based on rate, quantity and colors for each item
+      // Calculate subtotal based on rate and quantity for each item
       const subtotal = this.previewItemsData.reduce((sum, item) => {
-        // Get the correct rate based on whether baking is included
-        const baseRate = item.withBaking ? 
-          (item.plateRate + item.bakingRate) : 
-          item.plateRate;
-        
-        // Multiply by number of colors
-        const rateWithColors = baseRate * item.colours;
-        
-        // Calculate amount for this item (quantity * rate * colors)
-        const amount = item.quantity * rateWithColors;
-        
-        // Update item's rate and amount to reflect colors
-        item.rate = rateWithColors;
+        // Use the per-unit rate
+        const amount = item.quantity * item.rate;
         item.amount = amount;
-        
         return sum + amount;
       }, 0);
-      
+
       // Calculate taxes (9% CGST and 9% SGST)
       const cgst = subtotal * 0.09;
       const sgst = subtotal * 0.09;
-      
-      // Calculate exact total with tax
       const roundedTotal = Math.round(subtotal + cgst + sgst);
-      
+
       return {
         subtotal: subtotal.toFixed(2),
         cgst: cgst.toFixed(2),
@@ -748,40 +734,78 @@ export default {
     },
     
     async confirmInvoiceGeneration() {
-      if (!this.isValidInvoiceNumber) {
-        if (this.isNumberTooSmall) {
-          alert(`Invoice sequence cannot be smaller than the latest invoice (${this.latestSequenceNumber})`);
-        } else {
-          alert('Please provide a valid invoice sequence number');
-        }
+      // Validate that invoice sequence is a number
+      if (!this.isValidSequence) {
+        alert('Please enter a valid invoice sequence number.');
         return;
       }
-      
-      try {
-        // Log the data being sent
-        // console.log('Preview Items:', this.previewItemsData);
-        // console.log('Customer Rates:', this.customerRates);
-        // console.log('Selected Customer:', this.selectedCustomer);
-        
-        // Verify we have the required data
-        if (!this.previewItemsData.length) {
-          throw new Error('No preview items available');
-        }
-        if (!this.customerRates.length) {
-          throw new Error('No customer rates available');
-        }
 
+      try {
         this.showInvoiceModal = false;
         
-        // Use the formatted invoice number
-        const invoiceNumber = this.formattedInvoiceNumber;
+        // Use the formatted invoice number as entered by user
+        let invoiceNumber = this.formattedInvoiceNumber;
+        let currentSequence = parseInt(this.invoiceSequence, 10);
+        
+        // Check if the entered invoice number already exists
+        try {
+          const existingInvoiceResponse = await axios.get(`/invoices/check-number/${encodeURIComponent(invoiceNumber)}`);
+          if (existingInvoiceResponse.data.exists) {
+            // If it exists, get the next available number from the API
+            const latestResponse = await axios.get('/invoices/latest');
+            if (latestResponse.data && latestResponse.status === 200) {
+              const nextSequence = (latestResponse.data.invoice_sequence || 0) + 1;
+              this.invoiceSequence = nextSequence.toString();
+              invoiceNumber = `${this.invoicePrefix}${nextSequence.toString().padStart(2, '0')}`;
+              currentSequence = nextSequence;
+              
+              alert(`Invoice number ${this.formattedInvoiceNumber} already exists. Using next available number: ${invoiceNumber}`);
+            } else {
+              alert(`Invoice number ${invoiceNumber} already exists. Please use a different sequence number.`);
+              // Update the sequence to next available before reopening modal
+              try {
+                const latestFallbackResponse = await axios.get('/invoices/latest');
+                if (latestFallbackResponse.data) {
+                  this.invoiceSequence = ((latestFallbackResponse.data.invoice_sequence || 0) + 1).toString();
+                }
+              } catch (fallbackError) {
+                console.error('Error getting fallback sequence:', fallbackError);
+              }
+              this.showInvoiceModal = true;
+              return;
+            }
+          }
+        } catch (checkError) {
+          if (checkError.response?.status !== 404) {
+            console.error('Error checking invoice number:', checkError);
+            alert('Error checking invoice number. Please try again.');
+            // Update the sequence to next available before reopening modal
+            try {
+              const latestFallbackResponse = await axios.get('/invoices/latest');
+              if (latestFallbackResponse.data) {
+                this.invoiceSequence = ((latestFallbackResponse.data.invoice_sequence || 0) + 1).toString();
+              }
+            } catch (fallbackError) {
+              console.error('Error getting fallback sequence:', fallbackError);
+            }
+            this.showInvoiceModal = true;
+            return;
+          }
+          // 404 means invoice doesn't exist, which is what we want - proceed with the entered number
+        }
         
         // Parse parts for database storage
         const financialYear = this.currentFinancialYear;
-        const invoiceSequence = parseInt(this.invoiceSequence, 10);
+        const invoiceSequence = currentSequence;
         
-        // Calculate totals using the new method
-        const totals = this.calculateTotal();
+        // Split items by job rate BEFORE calculating totals and saving
+        const processedItems = this.splitItemsByJobRate(this.previewItemsData);
+        
+        // Calculate totals using the processed items with updated rates
+        const totals = this.calculateTotalFromProcessedItems(processedItems);
+
+        // Update the preview invoice data with the final invoice number
+        this.previewInvoiceData.invoice_number = invoiceNumber;
 
         // Log the invoice data being saved
         const invoiceToSave = {
@@ -798,50 +822,30 @@ export default {
           grand_total: parseFloat(totals.grandTotal),
           challan_references: this.previewInvoiceData.delivery_challan_ref,
           status: 'unpaid',
-          items: this.previewItemsData.map(item => ({
+          // Use processed items instead of previewItemsData
+          items: processedItems.map(item => ({
             plate_size_id: item.plateSizeId,
             description: `${item.plateSize} PS Plates - ${item.colours} ${item.colours === 1 ? 'colour' : 'colours'}${item.withBaking ? ' with Baking' : ''}`,
             colours: item.colours,
             quantity: item.quantity,
-            rate: item.rate,
-            amount: item.amount,
-            jobs: item.jobs, // Include full jobs array with challan numbers
+            rate: item.rate * item.colours, // Store rate multiplied by colours for invoice display
+            amount: item.amount * item.colours, // Store amount multiplied by colours
+            jobs: item.jobs,
             hasBaking: item.jobs.some(job => job.remark && job.remark.toLowerCase().includes('baking'))
           }))
         };
 
-        // console.log('Invoice to save:', invoiceToSave);
-
-        // Send to API and log the response
+        // Send to API
         const response = await axios.post('/invoices', invoiceToSave);
-        // console.log('API Response:', response.data);
 
-        // Update the invoice data with the formatted invoice number and calculated totals
-        this.previewInvoiceData = {
-          ...this.previewInvoiceData,
-          invoice_number: invoiceNumber,
-          subtotal: totals.subtotal,
-          cgst: totals.cgst,
-          sgst: totals.sgst,
-          grand_total: totals.grandTotal
-        };
-        
-        // Generate the actual PDF invoice
-        // console.log('Generating PDF with data:', {
-        //   invoiceData: this.previewInvoiceData,
-        //   customer: this.selectedCustomer,
-        //   items: this.previewItemsData,
-        //   rates: this.customerRates
-        // });
+        // Generate the actual PDF invoice using processed items
         const pdfResult = await printTaxInvoice(
           this.previewInvoiceData,
           this.selectedCustomer,
-          this.previewItemsData,
+          processedItems,
           this.customerRates,
           true
         );
-
-        // console.log('PDF Generation Result:', pdfResult);
         
       } catch (error) {
         console.error('Error details:', {
@@ -849,7 +853,23 @@ export default {
           response: error.response?.data,
           stack: error.stack
         });
-        alert(`Error generating tax invoice: ${error.message}`);
+        
+        // Check if it's a duplicate invoice number error (fallback)
+        if (error.response?.status === 409) {
+          alert(`Invoice number ${this.formattedInvoiceNumber} already exists. Please use a different sequence number or delete the existing invoice.`);
+          // Update the sequence to next available before reopening modal
+          try {
+            const latestFallbackResponse = await axios.get('/invoices/latest');
+            if (latestFallbackResponse.data) {
+              this.invoiceSequence = ((latestFallbackResponse.data.invoice_sequence || 0) + 1).toString();
+            }
+          } catch (fallbackError) {
+            console.error('Error getting fallback sequence:', fallbackError);
+          }
+          this.showInvoiceModal = true; // Reopen modal
+        } else {
+          alert(`Error generating tax invoice: ${error.message}`);
+        }
       }
     },
     
@@ -1071,8 +1091,7 @@ export default {
                       bakingRate: bakingRate,
                       rate: plateRate + bakingRate,
                       amount: bakingQuantity * (plateRate + bakingRate),
-                      jobs: bakingJobs, // Include the full jobs array with challan numbers
-                      withBaking: true
+                      jobs: bakingJobs // Include the full jobs array with challan numbers
                     });
                   }
                 }
@@ -1215,7 +1234,131 @@ export default {
         console.error('Error preparing bulk invoice generation:', error);
         alert('Error preparing bulk invoice generation. Please try again.');
       }
-    }
+    },
+
+    // Helper to get the editable rate for a job in the summary modal
+    getEditableRate(size, colour, jobId) {
+      const item = this.previewItemsData.find(
+        i =>
+          i.plateSize === size &&
+          i.colours == colour &&
+          i.jobs.some(j => j.job_id === jobId)
+      );
+      return item ? item.rate : 0;
+    },
+
+    // Handler to update the rate in previewItemsData when edited in the modal
+    onRateChange(size, colour, jobId, newRate) {
+      const item = this.previewItemsData.find(
+        i =>
+          i.plateSize === size &&
+          i.colours == colour &&
+          i.jobs.some(j => j.job_id === jobId)
+      );
+      if (item) {
+        item.rate = parseFloat(newRate) || 0;
+        item.amount = item.quantity * item.rate;
+      }
+    },
+
+    // Find the rate property in previewItemsData for v-model binding
+    findJobRateBinding(size, colour, jobId) {
+      // Find the item in previewItemsData that contains this job
+      const item = this.previewItemsData.find(
+        i =>
+          i.plateSize === size &&
+          i.colours == colour &&
+          i.jobs.some(j => j.job_id === jobId)
+      );
+      if (!item) return 0;
+      // Find the job in the jobs array
+      const job = item.jobs.find(j => j.job_id === jobId);
+      // If you want to allow per-job rate, use job.rate, else use item.rate
+      // If job.rate is undefined, fallback to item.rate
+      if (job && job.rate !== undefined) return job.rate;
+      return item.rate;
+    },
+
+    // Update the amount for the item and job when rate changes
+    updateJobAmount(size, colour, jobId) {
+      const item = this.previewItemsData.find(
+        i =>
+          i.plateSize === size &&
+          i.colours == colour &&
+          i.jobs.some(j => j.job_id === jobId)
+      );
+      if (!item) return;
+      const job = item.jobs.find(j => j.job_id === jobId);
+      if (job) {
+        // If job.rate is undefined, initialize it
+        if (job.rate === undefined) job.rate = item.rate;
+        // Update the item's amount as the sum of all job quantities * their rates
+        item.amount = item.jobs.reduce((sum, j) => sum + (j.quantity * (j.rate !== undefined ? j.rate : item.rate)), 0);
+      }
+    },
+
+    onJobRateInput(size, colour, jobId, value) {
+      const item = this.previewItemsData.find(
+        i =>
+          i.plateSize === size &&
+          i.colours == colour &&
+          i.jobs.some(j => j.job_id === jobId)
+      );
+      if (!item) return;
+      const job = item.jobs.find(j => j.job_id === jobId);
+      if (job) {
+        job.rate = parseFloat(value) || 0;
+        // Update the item's amount as the sum of all job quantities * their rates
+        item.amount = item.jobs.reduce((sum, j) => sum + (j.quantity * (j.rate !== undefined ? j.rate : item.rate)), 0);
+      }
+    },
+
+    // Split previewItemsData so each group has jobs with the same rate
+    splitItemsByJobRate(items) {
+      const result = [];
+      items.forEach(item => {
+        // Group jobs by their rate (if set), else use item.rate
+        const jobsByRate = {};
+        item.jobs.forEach(job => {
+          const rate = (job.rate !== undefined ? job.rate : item.rate);
+          if (!jobsByRate[rate]) jobsByRate[rate] = [];
+          jobsByRate[rate].push(job);
+        });
+        Object.entries(jobsByRate).forEach(([rate, jobs]) => {
+          // Do NOT multiply rate by colours here!
+          result.push({
+            ...item,
+            jobs,
+            quantity: jobs.reduce((sum, j) => sum + j.quantity, 0),
+            rate: parseFloat(rate), // per-unit rate
+            amount: jobs.reduce((sum, j) => sum + (j.quantity * parseFloat(rate)), 0)
+          });
+        });
+      });
+      return result;
+    },
+
+    calculateTotalFromProcessedItems(processedItems) {
+      // Calculate subtotal based on processed items with updated rates
+      const subtotal = processedItems.reduce((sum, item) => {
+        // Rate is already per-unit, multiply by colours and quantity
+        const amount = item.quantity * item.rate * item.colours;
+        return sum + amount;
+      }, 0);
+
+      // Calculate taxes (9% CGST and 9% SGST)
+      const cgst = subtotal * 0.09;
+      const sgst = subtotal * 0.09;
+      const roundedTotal = Math.round(subtotal + cgst + sgst);
+
+      return {
+        subtotal: subtotal.toFixed(2),
+        cgst: cgst.toFixed(2),
+        sgst: sgst.toFixed(2),
+        roundingAdjustment: (roundedTotal - (subtotal + cgst + sgst)).toFixed(2),
+        grandTotal: roundedTotal.toFixed(2)
+      };
+    },
   },
   mounted() {
     this.fetchCustomers();

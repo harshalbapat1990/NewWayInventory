@@ -45,57 +45,130 @@
       </div>
     </div>
 
+    <!-- Loading indicator -->
+    <div v-if="loading" class="text-center py-4">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <p class="mt-2 text-gray-600">Loading invoices...</p>
+    </div>
+
     <!-- Invoice Table -->
-    <table class="table-auto w-full border-collapse border border-gray-300">
-      <thead>
-        <tr class="bg-gray-200">
-          <th class="border border-gray-300 px-4 py-2">Invoice Number</th>
-          <th class="border border-gray-300 px-4 py-2">Date</th>
-          <th class="border border-gray-300 px-4 py-2">Customer</th>
-          <th class="border border-gray-300 px-4 py-2">Total Amount</th>
-          <th class="border border-gray-300 px-4 py-2">Status</th>
-          <th class="border border-gray-300 px-4 py-2">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="invoice in invoices" :key="invoice.id" :class="{
-          'bg-green-50': invoice.status === 'paid',
-          'bg-red-50': invoice.status === 'cancelled',
-          'bg-yellow-50': invoice.status === 'unpaid'
-        }">
-          <td class="border border-gray-300 px-4 py-2">{{ invoice.invoice_number }}</td>
-          <td class="border border-gray-300 px-4 py-2">{{ formatDate(invoice.invoice_date) }}</td>
-          <td class="border border-gray-300 px-4 py-2">{{ invoice.customer_name }}</td>
-          <td class="border border-gray-300 px-4 py-2">₹{{ formatAmount(invoice.grand_total) }}</td>
-          <td class="border border-gray-300 px-4 py-2">
-            <span :class="{
-              'bg-green-100 text-green-800': invoice.status === 'paid',
-              'bg-red-100 text-red-800': invoice.status === 'cancelled',
-              'bg-yellow-100 text-yellow-800': invoice.status === 'unpaid'
-            }" class="px-2 py-1 rounded-full">
-              {{ capitalizeFirstLetter(invoice.status) }}
-            </span>
-          </td>
-          <td class="border border-gray-300 px-4 py-2">
-            <button @click="viewInvoice(invoice)" class="btn-primary mr-2">View</button>
-            <button @click="printInvoice(invoice)" class="btn-print mr-2">Print</button>
-            <button @click="showEmailModal(invoice)" class="btn-email mr-2">
-              <i class="fas fa-envelope mr-1"></i> Email
-            </button>
-            <button @click="updateStatus(invoice)" class="btn-secondary mr-2"
-              v-if="userRole === 'admin' || userRole === 'accountant'">
-              {{ invoice.status === 'paid' ? 'Mark Unpaid' : 'Mark Paid' }}
-            </button>
-            <button @click="deleteInvoice(invoice)" class="btn-danger" v-if="userRole === 'accountant'">
-              Delete
-            </button>
-          </td>
-        </tr>
-        <tr v-if="invoices.length === 0">
-          <td class="border border-gray-300 px-4 py-2 text-center" colspan="6">No invoices found</td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-else>
+      <!-- Pagination Info -->
+      <div class="mb-4 flex justify-between items-center">
+        <div class="text-sm text-gray-700">
+          Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }} to 
+          {{ Math.min(pagination.page * pagination.per_page, pagination.total) }} of 
+          {{ pagination.total }} invoices
+        </div>
+        <div class="text-sm text-gray-700">
+          Page {{ pagination.page }} of {{ pagination.pages }}
+        </div>
+      </div>
+
+      <table class="table-auto w-full border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border border-gray-300 px-4 py-2">Invoice Number</th>
+            <th class="border border-gray-300 px-4 py-2">Date</th>
+            <th class="border border-gray-300 px-4 py-2">Customer</th>
+            <th class="border border-gray-300 px-4 py-2">Total Amount</th>
+            <th class="border border-gray-300 px-4 py-2">Status</th>
+            <th class="border border-gray-300 px-4 py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="invoice in invoices" :key="invoice.id" :class="{
+            'bg-green-50': invoice.status === 'paid',
+            'bg-red-50': invoice.status === 'cancelled',
+            'bg-yellow-50': invoice.status === 'unpaid'
+          }">
+            <td class="border border-gray-300 px-4 py-2">{{ invoice.invoice_number }}</td>
+            <td class="border border-gray-300 px-4 py-2">{{ formatDate(invoice.invoice_date) }}</td>
+            <td class="border border-gray-300 px-4 py-2">{{ invoice.customer_name }}</td>
+            <td class="border border-gray-300 px-4 py-2">₹{{ formatAmount(invoice.grand_total) }}</td>
+            <td class="border border-gray-300 px-4 py-2">
+              <span :class="{
+                'bg-green-100 text-green-800': invoice.status === 'paid',
+                'bg-red-100 text-red-800': invoice.status === 'cancelled',
+                'bg-yellow-100 text-yellow-800': invoice.status === 'unpaid'
+              }" class="px-2 py-1 rounded-full">
+                {{ capitalizeFirstLetter(invoice.status) }}
+              </span>
+            </td>
+            <td class="border border-gray-300 px-4 py-2">
+              <button @click="viewInvoice(invoice)" class="btn-primary mr-2">View</button>
+              <button @click="printInvoice(invoice)" class="btn-print mr-2">Print</button>
+              <button @click="showEmailModal(invoice)" class="btn-email mr-2">
+                <i class="fas fa-envelope mr-1"></i> Email
+              </button>
+              <button @click="updateStatus(invoice)" class="btn-secondary mr-2"
+                v-if="userRole === 'admin' || userRole === 'accountant'">
+                {{ invoice.status === 'paid' ? 'Mark Unpaid' : 'Mark Paid' }}
+              </button>
+              <button @click="deleteInvoice(invoice)" class="btn-danger" v-if="userRole === 'accountant'">
+                Delete
+              </button>
+            </td>
+          </tr>
+          <tr v-if="invoices.length === 0">
+            <td class="border border-gray-300 px-4 py-2 text-center" colspan="6">No invoices found</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination Controls -->
+      <div class="mt-6 flex justify-between items-center">
+        <div class="flex gap-2">
+          <button 
+            @click="goToPage(1)"
+            :disabled="!pagination.has_prev"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            First
+          </button>
+          <button 
+            @click="goToPage(pagination.prev_num)"
+            :disabled="!pagination.has_prev"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+        </div>
+
+        <!-- Page numbers -->
+        <div class="flex gap-1">
+          <button 
+            v-for="page in visiblePageNumbers" 
+            :key="page"
+            @click="goToPage(page)"
+            :class="{
+              'bg-blue-500 text-white': page === pagination.page,
+              'bg-white hover:bg-gray-50': page !== pagination.page
+            }"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <div class="flex gap-2">
+          <button 
+            @click="goToPage(pagination.next_num)"
+            :disabled="!pagination.has_next"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+          <button 
+            @click="goToPage(pagination.pages)"
+            :disabled="!pagination.has_next"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Last
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Email Invoice Modal -->
@@ -162,7 +235,6 @@
 import axios from '../../axios';
 import moment from 'moment';
 import { printTaxInvoice } from '../../utils/printTaxInvoice';
-import { generatePDF } from '../../utils/generatePDF'; // Create this utility function
 
 export default {
   data() {
@@ -174,6 +246,16 @@ export default {
         invoiceDate: '',
         customerId: '',
         status: ''
+      },
+      pagination: {
+        page: 1,
+        pages: 1,
+        per_page: 50,
+        total: 0,
+        has_prev: false,
+        has_next: false,
+        prev_num: null,
+        next_num: null
       },
       userRole: '',
       loading: false,
@@ -189,11 +271,39 @@ export default {
       isSending: false
     };
   },
+  computed: {
+    visiblePageNumbers() {
+      const current = this.pagination.page;
+      const total = this.pagination.pages;
+      const delta = 2; // Number of pages to show on each side of current page
+      
+      let start = Math.max(1, current - delta);
+      let end = Math.min(total, current + delta);
+      
+      // Adjust if we're near the beginning or end
+      if (current <= delta) {
+        end = Math.min(total, 2 * delta + 1);
+      }
+      if (current > total - delta) {
+        start = Math.max(1, total - 2 * delta);
+      }
+      
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+  },
   methods: {
-    async fetchInvoices() {
+    async fetchInvoices(page = 1) {
       this.loading = true;
       try {
         const queryParams = new URLSearchParams();
+
+        // Add pagination parameters
+        queryParams.append('page', page.toString());
+        queryParams.append('per_page', '50');
 
         // Clean and validate invoice number filter
         if (this.filters.invoiceNumber && this.filters.invoiceNumber.trim()) {
@@ -202,7 +312,6 @@ export default {
 
         // Validate date filter
         if (this.filters.invoiceDate) {
-          // Ensure date is in YYYY-MM-DD format
           const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
           if (dateRegex.test(this.filters.invoiceDate)) {
             queryParams.append('date', this.filters.invoiceDate);
@@ -220,29 +329,12 @@ export default {
           queryParams.append('status', this.filters.status);
         }
 
-        // Log the full URL with query parameters for debugging
         const url = `/invoices${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-
         const response = await axios.get(url);
-        console.log(response.data); // Log the response data for debugging
-        // Sort invoices in descending order
-        this.invoices = response.data.sort((a, b) => {
-          const dateA = new Date(a.invoice_date);
-          const dateB = new Date(b.invoice_date);
+        
+        this.invoices = response.data.invoices;
+        this.pagination = response.data.pagination;
 
-          // First sort by date (newest first)
-          if (dateB - dateA !== 0) {
-            return dateB - dateA;
-          }
-
-          // If dates are the same, sort by financial year and sequence (newest first)
-          if (a.financial_year !== b.financial_year) {
-            return b.financial_year - a.financial_year;
-          }
-
-          // Finally sort by sequence number
-          return b.invoice_sequence - a.invoice_sequence;
-        });
       } catch (error) {
         console.error('Error fetching invoices:', error);
         if (error.response) {
@@ -254,6 +346,40 @@ export default {
       }
     },
 
+    goToPage(page) {
+      if (page && page !== this.pagination.page && page >= 1 && page <= this.pagination.pages) {
+        this.fetchInvoices(page);
+      }
+    },
+
+    applyFilters() {
+      // Perform validation before fetching
+      if (this.filters.invoiceDate) {
+        try {
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dateRegex.test(this.filters.invoiceDate)) {
+            alert('Please enter a valid date in YYYY-MM-DD format');
+            return;
+          }
+        } catch (e) {
+          alert('Please enter a valid date');
+          return;
+        }
+      }
+      // Reset to page 1 when applying filters
+      this.fetchInvoices(1);
+    },
+
+    clearFilters() {
+      this.filters = {
+        invoiceNumber: '',
+        invoiceDate: '',
+        customerId: '',
+        status: ''
+      };
+      // Reset to page 1 when clearing filters
+      this.fetchInvoices(1);
+    },
     async fetchCustomers() {
       try {
         const response = await axios.get('/customers');
@@ -271,38 +397,11 @@ export default {
     capitalizeFirstLetter(string) {
       return string.charAt(0).toUpperCase() + string.slice(1);
     },
-    applyFilters() {
-      // Perform validation before fetching
-      if (this.filters.invoiceDate) {
-        try {
-          // Ensure it's a valid date format (YYYY-MM-DD)
-          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-          if (!dateRegex.test(this.filters.invoiceDate)) {
-            alert('Please enter a valid date in YYYY-MM-DD format');
-            return;
-          }
-        } catch (e) {
-          alert('Please enter a valid date');
-          return;
-        }
-      }
-      this.fetchInvoices();
-    },
-    clearFilters() {
-      this.filters = {
-        invoiceNumber: '',
-        invoiceDate: '',
-        customerId: '',
-        status: ''
-      };
-      this.fetchInvoices();
-    },
     async viewInvoice(invoice) {
       try {
         this.loading = true;
 
         // Add debug logs
-        console.log('Invoice to view:', invoice);
 
         const [customerData, invoiceDetails, customerRates] = await Promise.all([
           this.getCustomerById(invoice.customer_id),
@@ -310,26 +409,27 @@ export default {
           this.getCustomerRates(invoice.customer_id)
         ]);
 
-        // Add debug logs
-        // console.log('Customer Data:', customerData);
-        // console.log('Invoice Details:', invoiceDetails);
-        // console.log('Customer Rates:', customerRates);
-
         // Process invoice items
         const itemsData = invoiceDetails.items.map(item => {
           // Add debug log for each item
-          console.log('Processing item:', item);
 
           const customerRate = customerRates.find(rate =>
             rate.plate_size_id === item.plate_size_id
           );
 
-          // Add debug log for found rate
-          // console.log('Found customer rate:', customerRate);
-
           const plateRate = customerRate?.plate_rate || 0;
           const bakingRate = customerRate?.baking_rate || 0;
           const hasBaking = item.description.toLowerCase().includes('baking');
+
+          // Use stored rate from database if available, otherwise calculate from customer rates
+          let finalRate;
+          if (item.rate && item.rate > 0) {
+            // Use the stored rate from the database (this is the rate * colours that was saved)
+            finalRate = item.rate;
+          } else {
+            // Fall back to calculating from customer rates
+            finalRate = hasBaking ? plateRate + bakingRate : plateRate;
+          }
 
           return {
             plateSize: item.plate_size,
@@ -340,17 +440,14 @@ export default {
             rateType: hasBaking ? 'baking_rate' : 'plate_rate',
             plateRate: plateRate,
             bakingRate: bakingRate,
-            rate: hasBaking ? plateRate + bakingRate : plateRate,
+            rate: finalRate, // Use the finalRate (either stored or calculated)
             amount: item.amount,
             description: item.description,
             withBaking: hasBaking,
-            // Add empty jobs array to prevent undefined error
-            jobs: [] // Add this line
+            // Add flag to indicate this is from stored data
+            useStoredRate: !!(item.rate && item.rate > 0)
           };
         });
-
-        // Add debug log for final items data
-        // console.log('Final Items Data:', itemsData);
 
         // Format invoice data
         const formattedInvoiceData = {
@@ -431,12 +528,20 @@ export default {
             rate.plate_size_id === item.plate_size_id
           );
 
-          // Get base rates
+          // Get base rates for fallback
           const plateRate = customerRate?.plate_rate || 0;
           const bakingRate = customerRate?.baking_rate || 0;
-
-          // Check if item includes baking
           const hasBaking = item.description.toLowerCase().includes('baking');
+
+          // Use stored rate from database if available, otherwise calculate from customer rates
+          let finalRate;
+          if (item.rate && item.rate > 0) {
+            // Use the stored rate from the database (this is the rate * colours that was saved)
+            finalRate = item.rate;
+          } else {
+            // Fall back to calculating from customer rates
+            finalRate = hasBaking ? plateRate + bakingRate : plateRate;
+          }
 
           return {
             plateSize: item.plate_size,
@@ -447,10 +552,12 @@ export default {
             rateType: hasBaking ? 'baking_rate' : 'plate_rate',
             plateRate: plateRate,
             bakingRate: bakingRate,
-            rate: hasBaking ? plateRate + bakingRate : plateRate,
+            rate: finalRate, // Use the finalRate (either stored or calculated)
             amount: item.amount,
             description: item.description,
-            withBaking: hasBaking
+             withBaking: hasBaking,
+            // Add flag to indicate this is from stored data  
+            useStoredRate: !!(item.rate && item.rate > 0)
           };
         });
 
@@ -627,12 +734,20 @@ export default {
             rate.plate_size_id === item.plate_size_id
           );
 
-          // Get base rates
+          // Get base rates for fallback
           const plateRate = customerRate?.plate_rate || 0;
           const bakingRate = customerRate?.baking_rate || 0;
-
-          // Check if item includes baking
           const hasBaking = item.description.toLowerCase().includes('baking');
+
+          // Use stored rate from database if available, otherwise calculate from customer rates
+          let finalRate;
+          if (item.rate && item.rate > 0) {
+            // Use the stored rate from the database (this is the rate * colours that was saved)
+            finalRate = item.rate;
+          } else {
+            // Fall back to calculating from customer rates
+            finalRate = hasBaking ? plateRate + bakingRate : plateRate;
+          }
 
           return {
             plateSize: item.plate_size,
@@ -643,10 +758,12 @@ export default {
             rateType: hasBaking ? 'baking_rate' : 'plate_rate',
             plateRate: plateRate,
             bakingRate: bakingRate,
-            rate: hasBaking ? plateRate + bakingRate : plateRate,
+            rate: finalRate, // Use the finalRate (either stored or calculated)
             amount: item.amount,
             description: item.description,
-            withBaking: hasBaking
+            withBaking: hasBaking,
+            // Add flag to indicate this is from stored data
+            useStoredRate: !!(item.rate && item.rate > 0)
           };
         });
 
@@ -721,7 +838,6 @@ export default {
           }
         });
 
-        console.log("Email response:", response);
         alert('Email sent successfully!');
         this.closeEmailModal();
       } catch (error) {
