@@ -220,3 +220,21 @@
   outline: none;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5); /* Focus ring */
 }
+
+.btn-export {
+  background-color: #16a34a; /* Green-600 */
+  color: white;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+}
+
+.btn-export:hover {
+  background-color: #15803d; /* Green-700 */
+}
+
+.btn-export:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.5); /* Focus ring */
+}

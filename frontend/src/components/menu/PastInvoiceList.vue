@@ -42,6 +42,9 @@
         <button @click="clearFilters" class="btn-secondary">
           Clear Filters
         </button>
+        <button @click="openExportModal" class="btn-export">
+          <i class="fas fa-file-excel mr-1"></i> Export to Excel
+        </button>
       </div>
     </div>
 
@@ -229,12 +232,50 @@
       </div>
     </div>
   </div>
+
+  <!-- Export Invoices Modal -->
+  <div v-if="showExportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-1/3">
+      <h2 class="text-xl font-semibold mb-4">Export Invoices to Excel</h2>
+      
+      <div class="mb-4">
+        <label for="export-date" class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+        <input 
+          id="export-date" 
+          v-model="exportDate" 
+          type="date"
+          class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          required
+        />
+      </div>
+      
+      <div class="mb-4">
+        <p class="text-sm text-gray-600">
+          This will export all invoices created on the selected date in Tally-compatible format.
+        </p>
+      </div>
+
+      <div class="flex justify-end space-x-3 mt-6">
+        <button @click="closeExportModal" class="btn-secondary">
+          Cancel
+        </button>
+        <button 
+          @click="exportToExcel" 
+          class="btn-primary" 
+          :disabled="!exportDate || isExporting"
+        >
+          {{ isExporting ? 'Exporting...' : 'Export' }}
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
 import axios from '../../axios';
 import moment from 'moment';
 import { printTaxInvoice } from '../../utils/printTaxInvoice';
+import * as XLSX from 'xlsx';
 
 export default {
   data() {
@@ -260,6 +301,7 @@ export default {
       userRole: '',
       loading: false,
       showEmailModalFlag: false,
+      showExportModal: false,
       selectedInvoice: null,
       selectedCustomerEmail: '',
       selectedCustomerName: '',
@@ -268,7 +310,9 @@ export default {
         message: '',
         includePdf: true
       },
-      isSending: false
+      exportDate: '',
+      isSending: false,
+      isExporting: false
     };
   },
   computed: {
@@ -851,6 +895,214 @@ export default {
       if (this.selectedInvoice && this.selectedInvoice.customer_id) {
         this.$router.push(`/customers/edit/${this.selectedInvoice.customer_id}`);
       }
+    },
+    openExportModal() {
+      this.exportDate = moment().format('YYYY-MM-DD'); // Default to today
+      this.showExportModal = true;
+    },
+    closeExportModal() {
+      this.showExportModal = false;
+      this.exportDate = '';
+      this.isExporting = false;
+    },
+    async exportToExcel() {
+      try {
+        this.isExporting = true;
+        
+        // Fetch invoices for the selected date
+        const queryParams = new URLSearchParams();
+        queryParams.append('date', this.exportDate);
+        queryParams.append('per_page', '1000'); // Get all invoices for the date
+        
+        const response = await axios.get(`/invoices?${queryParams.toString()}`);
+        const invoices = response.data.invoices;
+        
+        if (invoices.length === 0) {
+          alert('No invoices found for the selected date.');
+          return;
+        }
+        
+        // Process each invoice to get detailed data
+        const exportData = [];
+        
+        for (const invoice of invoices) {
+          const [customerData, invoiceDetails] = await Promise.all([
+            this.getCustomerById(invoice.customer_id),
+            this.getInvoiceDetails(invoice.id)
+          ]);
+          
+          // Map invoice data to Tally format
+          const mappedData = this.mapInvoiceToTallyFormat(invoice, customerData, invoiceDetails);
+          exportData.push(...mappedData);
+        }
+        
+        // Create Excel file
+        this.createExcelFile(exportData);
+        
+        this.closeExportModal();
+        
+      } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        alert('Error exporting invoices. Please try again.');
+      } finally {
+        this.isExporting = false;
+      }
+    },
+    
+    mapInvoiceToTallyFormat(invoice, customer, invoiceDetails) {
+      const exportRows = [];
+      const invoiceDate = moment(invoice.invoice_date).format('DD-MM-YYYY');
+      const customerAddress = `${customer.address || ''}, ${customer.city || ''}, ${customer.state || ''} ${customer.pin_code || ''}`.replace(/^,\s*|,\s*$/, '');
+      
+      // Calculate actual subtotal from items
+      const actualSubtotal = invoiceDetails.items.reduce((sum, item) => sum + item.amount, 0);
+      const cgst = invoice.cgst_amount || 0;
+      const sgst = invoice.sgst_amount || 0;
+      const calculatedTotal = actualSubtotal + cgst + sgst;
+      const roundingAdjustment = invoice.grand_total - calculatedTotal;
+      
+      // 1. Main customer debit entry
+      exportRows.push({
+        'Voucher Date': invoiceDate,
+        'Voucher Type Name': 'Sales',
+        'Voucher Number': invoice.invoice_number,
+        'Buyer/Supplier - Address': customerAddress,
+        'Ledger Name': customer.company_name,
+        'Ledger Amount': invoice.grand_total, // Total invoice value
+        'Ledger Amount Dr/Cr': 'Dr', // Positive for debit (customer owes us)
+        'Item Allocations - Godown Name': 'Main Location',
+        'Item Name': '',
+        'Item Description': '',
+        'Billed Quantity': '',
+        'Item Rate': '',
+        'Item Rate per': '',
+        'Item Amount': '',
+        'Change Mode': 'Item Invoice'
+      });
+      
+      // 2. Individual item sales entries (credits)
+      invoiceDetails.items.forEach(item => {
+        exportRows.push({
+          'Voucher Date': invoiceDate,
+          'Voucher Type Name': 'Sales',
+          'Voucher Number': invoice.invoice_number,
+          'Buyer/Supplier - Address': customerAddress,
+          'Ledger Name': 'CTP SALE @18% GST',
+          'Ledger Amount': item.amount, // Item amount (will be negative for credit)
+          'Ledger Amount Dr/Cr': 'Cr', // Negative for credit (sales)
+          'Item Allocations - Godown Name': 'Main Location',
+          'Item Name': item.description,
+          'Item Description': item.description,
+          'Billed Quantity': item.quantity,
+          'Item Rate': item.rate,
+          'Item Rate per': '/Unit',
+          'Item Amount': item.amount,
+          'Change Mode': 'Item Invoice'
+        });
+      });
+      
+      // 3. CGST Entry (credit)
+      if (invoice.cgst_amount > 0) {
+        exportRows.push({
+          'Voucher Date': invoiceDate,
+          'Voucher Type Name': 'Sales',
+          'Voucher Number': invoice.invoice_number,
+          'Buyer/Supplier - Address': customerAddress,
+          'Ledger Name': 'OUTPUT CGST @09% - CENTRAL TAX',
+          'Ledger Amount': invoice.cgst_amount,
+          'Ledger Amount Dr/Cr': 'Cr', // Credit
+          'Item Allocations - Godown Name': 'Main Location',
+          'Item Name': '',
+          'Item Description': '',
+          'Billed Quantity': '',
+          'Item Rate': '',
+          'Item Rate per': '',
+          'Item Amount': '',
+          'Change Mode': 'Item Invoice'
+        });
+      }
+      
+      // 4. SGST Entry (credit)
+      if (invoice.sgst_amount > 0) {
+        exportRows.push({
+          'Voucher Date': invoiceDate,
+          'Voucher Type Name': 'Sales',
+          'Voucher Number': invoice.invoice_number,
+          'Buyer/Supplier - Address': customerAddress,
+          'Ledger Name': 'OUTPUT SGST @09% - STATE TAX',
+          'Ledger Amount': invoice.sgst_amount,
+          'Ledger Amount Dr/Cr': 'Cr', // Credit
+          'Item Allocations - Godown Name': 'Main Location',
+          'Item Name': '',
+          'Item Description': '',
+          'Billed Quantity': '',
+          'Item Rate': '',
+          'Item Rate per': '',
+          'Item Amount': '',
+          'Change Mode': 'Item Invoice'
+        });
+      }
+      
+      // 5. Round Up entry (if applicable) - Calculate dynamically
+      if (Math.abs(roundingAdjustment) > 0.01) { // Only include if rounding is significant (more than 1 paisa)
+        exportRows.push({
+          'Voucher Date': invoiceDate,
+          'Voucher Type Name': 'Sales',
+          'Voucher Number': invoice.invoice_number,
+          'Buyer/Supplier - Address': customerAddress,
+          'Ledger Name': 'ROUND UP',
+          'Ledger Amount': Math.abs(roundingAdjustment).toFixed(2),
+          'Ledger Amount Dr/Cr': roundingAdjustment > 0 ? 'Cr' : 'Dr',
+          'Item Allocations - Godown Name': 'Main Location',
+          'Item Name': '',
+          'Item Description': '',
+          'Billed Quantity': '',
+          'Item Rate': '',
+          'Item Rate per': '',
+          'Item Amount': '',
+          'Change Mode': 'Item Invoice'
+        });
+      }
+      
+      return exportRows;
+    },
+    
+    createExcelFile(data) {
+      // Create a new workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Create worksheet from data
+      const ws = XLSX.utils.json_to_sheet(data);
+      
+      // Set column widths to match the required format
+      const colWidths = [
+        { wch: 12 }, // Voucher Date
+        { wch: 18 }, // Voucher Type Name
+        { wch: 18 }, // Voucher Number
+        { wch: 35 }, // Buyer/Supplier - Address
+        { wch: 30 }, // Ledger Name
+        { wch: 15 }, // Ledger Amount
+        { wch: 12 }, // Ledger Amount Dr/Cr
+        { wch: 20 }, // Item Allocations - Godown Name
+        { wch: 25 }, // Item Name
+        { wch: 25 }, // Item Description
+        { wch: 12 }, // Billed Quantity
+        { wch: 12 }, // Item Rate
+        { wch: 12 }, // Item Rate per
+        { wch: 15 }, // Item Amount
+        { wch: 15 }  // Change Mode
+      ];
+      ws['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Accounting Vouchers');
+      
+      // Generate filename with selected date
+      const selectedDate = moment(this.exportDate).format('DD_MM_YYYY');
+      const fileName = `AccountingVouchers_${selectedDate}.xlsx`;
+      
+      // Trigger download
+      XLSX.writeFile(wb, fileName);
     }
   },
   mounted() {

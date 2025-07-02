@@ -189,13 +189,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-/* .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline;
-}
-
-.btn-print {
-  @apply bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline;
-} */
-</style>
