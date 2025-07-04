@@ -1,4 +1,3 @@
-<!-- filepath: frontend/src/components/menu/ChallanList.vue -->
 <template>
   <div class="challan-list p-6 bg-gray-50 rounded-lg shadow-md">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Challans</h1>
@@ -45,42 +44,118 @@
       </div>
     </div>
 
+    <!-- Loading indicator -->
+    <div v-if="loading" class="text-center py-4">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      <p class="mt-2 text-gray-600">Loading challans...</p>
+    </div>
+
     <!-- Challan Table -->
-    <table class="table-auto w-full border-collapse border border-gray-300">
-      <thead>
-        <tr class="bg-gray-200">
-          <th class="border border-gray-300 px-4 py-2 w-1/10">Challan Code</th>
-          <th class="border border-gray-300 px-4 py-2 w-1/10">Date</th>
-          <th class="border border-gray-300 px-4 py-2 w-3/20">Customer</th>
-          <th class="border border-gray-300 px-4 py-2 w-1/10">Print Status</th>
-          <th class="border border-gray-300 px-4 py-2 w-3/20">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="challan in challans" :key="challan.id" :class="{'bg-gray-100': challan.printed}">
-          <td class="border border-gray-300 px-4 py-2 w-1/10">{{ challan.challan_code }}</td>
-          <td class="border border-gray-300 px-4 py-2 w-1/10">{{ formatDate(challan.date) }}</td>
-          <td class="border border-gray-300 px-4 py-2 w-3/20">{{ getCustomerName(challan.customer_id) }}</td>
-          <td class="border border-gray-300 px-4 py-2 w-1/10">
-            <span 
-              :class="challan.printed 
-                ? 'bg-green-100 text-green-800 px-2 py-1 rounded-full' 
-                : 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full'"
-            >
-              {{ challan.printed ? 'Printed' : 'Not Printed' }}
-            </span>
-          </td>
-          <td class="border border-gray-300 px-4 py-2 w-3/20">
-            <button @click="editChallan(challan)" class="btn-primary mr-2" v-if="userRole === 'admin' || userRole === 'accountant'">Edit</button>
-            <button @click="deleteChallan(challan.id)" class="btn-danger mr-2" v-if="userRole === 'admin'">Delete</button>
-            <button @click="printChallan(challan)" class="btn-print mr-2" :disabled="challan.printed">Print</button>
-            <button @click="togglePrintStatus(challan)" class="btn-secondary">
-              {{ challan.printed ? 'Mark Not Printed' : 'Mark Printed' }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-else>
+      <!-- Pagination Info -->
+      <div class="mb-4 flex justify-between items-center">
+        <div class="text-sm text-gray-700">
+          Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }} to 
+          {{ Math.min(pagination.page * pagination.per_page, pagination.total) }} of 
+          {{ pagination.total }} challans
+        </div>
+        <div class="text-sm text-gray-700">
+          Page {{ pagination.page }} of {{ pagination.pages }}
+        </div>
+      </div>
+
+      <table class="table-auto w-full border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="border border-gray-300 px-4 py-2 w-1/10">Challan Code</th>
+            <th class="border border-gray-300 px-4 py-2 w-1/10">Date</th>
+            <th class="border border-gray-300 px-4 py-2 w-3/20">Customer</th>
+            <th class="border border-gray-300 px-4 py-2 w-1/10">Print Status</th>
+            <th class="border border-gray-300 px-4 py-2 w-3/20">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="challan in challans" :key="challan.id" :class="{'bg-gray-100': challan.printed}">
+            <td class="border border-gray-300 px-4 py-2 w-1/10">{{ challan.challan_code }}</td>
+            <td class="border border-gray-300 px-4 py-2 w-1/10">{{ formatDate(challan.date) }}</td>
+            <td class="border border-gray-300 px-4 py-2 w-3/20">{{ getCustomerName(challan.customer_id) }}</td>
+            <td class="border border-gray-300 px-4 py-2 w-1/10">
+              <span 
+                :class="challan.printed 
+                  ? 'bg-green-100 text-green-800 px-2 py-1 rounded-full' 
+                  : 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full'"
+              >
+                {{ challan.printed ? 'Printed' : 'Not Printed' }}
+              </span>
+            </td>
+            <td class="border border-gray-300 px-4 py-2 w-3/20">
+              <button @click="editChallan(challan)" class="btn-primary mr-2" v-if="userRole === 'admin' || userRole === 'accountant'">Edit</button>
+              <button @click="deleteChallan(challan.id)" class="btn-danger mr-2" v-if="userRole === 'admin'">Delete</button>
+              <button @click="printChallan(challan)" class="btn-print mr-2" :disabled="challan.printed">Print</button>
+              <button @click="togglePrintStatus(challan)" class="btn-secondary">
+                {{ challan.printed ? 'Mark Not Printed' : 'Mark Printed' }}
+              </button>
+            </td>
+          </tr>
+          <tr v-if="challans.length === 0">
+            <td class="border border-gray-300 px-4 py-2 text-center" colspan="5">No challans found</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination Controls -->
+      <div class="mt-6 flex justify-between items-center">
+        <div class="flex gap-2">
+          <button 
+            @click="goToPage(1)"
+            :disabled="!pagination.has_prev"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            First
+          </button>
+          <button 
+            @click="goToPage(pagination.prev_num)"
+            :disabled="!pagination.has_prev"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+        </div>
+
+        <!-- Page numbers -->
+        <div class="flex gap-1">
+          <button 
+            v-for="page in visiblePageNumbers" 
+            :key="page"
+            @click="goToPage(page)"
+            :class="{
+              'bg-blue-500 text-white': page === pagination.page,
+              'bg-white hover:bg-gray-50': page !== pagination.page
+            }"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <div class="flex gap-2">
+          <button 
+            @click="goToPage(pagination.next_num)"
+            :disabled="!pagination.has_next"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+          <button 
+            @click="goToPage(pagination.pages)"
+            :disabled="!pagination.has_next"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Last
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -101,13 +176,53 @@ export default {
         customerId: '',
         printed: ''
       },
-      userRole: '', // Role of the logged-in user
+      pagination: {
+        page: 1,
+        pages: 1,
+        per_page: 50,
+        total: 0,
+        has_prev: false,
+        has_next: false,
+        prev_num: null,
+        next_num: null
+      },
+      userRole: '',
+      loading: false
     };
   },
+  computed: {
+    visiblePageNumbers() {
+      const current = this.pagination.page;
+      const total = this.pagination.pages;
+      const delta = 2; // Number of pages to show on each side of current page
+      
+      let start = Math.max(1, current - delta);
+      let end = Math.min(total, current + delta);
+      
+      // Adjust if we're near the beginning or end
+      if (current <= delta) {
+        end = Math.min(total, 2 * delta + 1);
+      }
+      if (current > total - delta) {
+        start = Math.max(1, total - 2 * delta);
+      }
+      
+      const pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+  },
   methods: {
-    async fetchChallans() {
+    async fetchChallans(page = 1) {
+      this.loading = true;
       try {
         const queryParams = new URLSearchParams();
+        
+        // Add pagination parameters
+        queryParams.append('page', page.toString());
+        queryParams.append('per_page', '50');
         
         if (this.filters.challanCode) queryParams.append('challan_code', this.filters.challanCode);
         if (this.filters.date) queryParams.append('date', this.filters.date);
@@ -116,9 +231,18 @@ export default {
         
         const url = `/challans${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
         const response = await axios.get(url);
-        this.challans = response.data.sort((a, b) => b.challan_code.localeCompare(a.challan_code));
+        
+        this.challans = response.data.challans;
+        this.pagination = response.data.pagination;
       } catch (error) {
         console.error('Error fetching challans:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    goToPage(page) {
+      if (page && page !== this.pagination.page && page >= 1 && page <= this.pagination.pages) {
+        this.fetchChallans(page);
       }
     },
     async fetchCustomers() {
@@ -145,7 +269,8 @@ export default {
       return customer ? customer.company_name : 'Unknown';
     },
     applyFilters() {
-      this.fetchChallans();
+      // Reset to page 1 when applying filters
+      this.fetchChallans(1);
     },
     clearFilters() {
       this.filters = {
@@ -154,7 +279,8 @@ export default {
         customerId: '',
         printed: ''
       };
-      this.fetchChallans();
+      // Reset to page 1 when clearing filters
+      this.fetchChallans(1);
     },
     editChallan(challan) {
       this.$router.push({ path: '/jobs-delivery-challan', query: { challanId: challan.id } });
@@ -164,7 +290,7 @@ export default {
         const customer = this.customers.find(c => c.id === challan.customer_id) || {};
         printChallan(challan, customer, this.plateSizes);
         // Refresh the list after printing
-        setTimeout(() => this.fetchChallans(), 1000);
+        setTimeout(() => this.fetchChallans(this.pagination.page), 1000);
       } catch (error) {
         console.error('Error printing challan:', error);
       }
@@ -176,8 +302,8 @@ export default {
         } else {
           await axios.put(`/challans/${challan.id}/mark-printed`);
         }
-        // Refresh the list
-        this.fetchChallans();
+        // Refresh the current page
+        this.fetchChallans(this.pagination.page);
       } catch (error) {
         console.error('Error toggling print status:', error);
       }
@@ -187,7 +313,7 @@ export default {
         try {
           await axios.delete(`/challans/${id}`);
           alert('Challan deleted successfully!');
-          this.fetchChallans();
+          this.fetchChallans(this.pagination.page);
         } catch (error) {
           console.error('Error deleting challan:', error);
         }
@@ -195,7 +321,7 @@ export default {
     },
   },
   mounted() {
-    this.userRole = this.$store?.state?.user?.role || 'admin'; // Fetch user role from Vuex store with fallback
+    this.userRole = this.$store?.state?.user?.role || 'admin';
     this.fetchChallans();
     this.fetchCustomers();
     this.fetchPlateSizes();

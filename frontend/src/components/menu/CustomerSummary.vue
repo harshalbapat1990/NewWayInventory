@@ -432,9 +432,12 @@ export default {
             customer_id: this.selectedCustomerId,
             start_date: this.startDate,
             end_date: this.endDate,
+            per_page: 1000 // Get all results for summary
           },
         });
-        const challans = response.data;
+        
+        // Extract challans from the paginated response
+        const challans = response.data.challans || response.data;
         // console.log('Fetched Challans:', challans);
 
         // Group challans by plate size, colours, and challan_code
@@ -464,11 +467,16 @@ export default {
             }
             const challanCodeFormatted = challan.challan_code.split('-')[1] || challan.challan_code;
 
-            let challanGroup = colourGroup.challans.find(group => group.challan_no === challanCodeFormatted);
-            if (!challanGroup) {
-              challanGroup = { challan_no: challanCodeFormatted, jobs: [] };
-              colourGroup.challans.push(challanGroup);
-            }
+            let challanGroup = colourGroup.challans.find(group => 
+                  group.challan_no === (challan.challan_code.split('-')[1] || challan.challan_code)
+                );
+                if (!challanGroup) {
+                  challanGroup = { 
+                    challan_no: challan.challan_code.split('-')[1] || challan.challan_code, 
+                    jobs: [] 
+                  };
+                  colourGroup.challans.push(challanGroup);
+                }
 
             challanGroup.jobs.push({
               job_id: job.job_id,
@@ -950,10 +958,12 @@ export default {
                 customer_id: customer.id,
                 start_date: this.bulkInvoiceStartDate,
                 end_date: this.bulkInvoiceEndDate,
+                per_page: 1000 // Get all results for summary
               },
             });
 
-            const challans = response.data;
+            // Extract challans from the paginated response
+            const challans = response.data.challans || response.data;
             if (!challans.length) {
               results.skipped.push(customer.company_name);
               continue;
@@ -994,11 +1004,11 @@ export default {
                 }
 
                 let challanGroup = colourGroup.challans.find(group => 
-                  group.challan_no === challan.challan_code.split('-')[1]
+                  group.challan_no === (challan.challan_code.split('-')[1] || challan.challan_code)
                 );
                 if (!challanGroup) {
                   challanGroup = { 
-                    challan_no: challan.challan_code.split('-')[1], 
+                    challan_no: challan.challan_code.split('-')[1] || challan.challan_code, 
                     jobs: [] 
                   };
                   colourGroup.challans.push(challanGroup);

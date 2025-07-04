@@ -510,36 +510,71 @@ def register_routes(app):
             db.session.commit()
             return jsonify(new_challan.serialize()), 201
 
-        # Handle GET request with optional filters
-        challan_code = request.args.get('challan_code')
-        date = request.args.get('date')
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        customer_id = request.args.get('customer_id')
-        printed = request.args.get('printed')
+        # Handle GET request with pagination and filters
+        try:
+            # Pagination parameters
+            page = request.args.get('page', 1, type=int)
+            per_page = request.args.get('per_page', 50, type=int)
+            
+            # Filter parameters
+            challan_code = request.args.get('challan_code')
+            date = request.args.get('date')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            customer_id = request.args.get('customer_id', type=int)
+            printed = request.args.get('printed')
 
-        query = Challan.query
+            # Build query
+            query = Challan.query
 
-        if challan_code:
-            query = query.filter(Challan.challan_code.like(f"%{challan_code}%"))
-        
-        # Handle single date or date range
-        if date:
-            query = query.filter(Challan.date == datetime.strptime(date, '%Y-%m-%d').date())
-        elif start_date and end_date:
-            start = datetime.strptime(start_date, '%Y-%m-%d').date()
-            end = datetime.strptime(end_date, '%Y-%m-%d').date()
-            query = query.filter(Challan.date.between(start, end))
-        
-        if customer_id:
-            query = query.filter(Challan.customer_id == customer_id)
-        if printed is not None:
-            # Convert string 'true'/'false' to boolean
-            is_printed = printed.lower() == 'true'
-            query = query.filter(Challan.printed == is_printed)
+            if challan_code:
+                query = query.filter(Challan.challan_code.ilike(f'%{challan_code}%'))
+            
+            # Handle single date or date range
+            if date:
+                query = query.filter(Challan.date == datetime.strptime(date, '%Y-%m-%d').date())
+            elif start_date and end_date:
+                start = datetime.strptime(start_date, '%Y-%m-%d').date()
+                end = datetime.strptime(end_date, '%Y-%m-%d').date()
+                query = query.filter(Challan.date.between(start, end))
+            
+            if customer_id:
+                query = query.filter(Challan.customer_id == customer_id)
+            if printed is not None:
+                # Convert string 'true'/'false' to boolean
+                is_printed = printed.lower() == 'true'
+                query = query.filter(Challan.printed == is_printed)
 
-        challans = query.all()
-        return jsonify([challan.serialize() for challan in challans]), 200
+            # Order by challan_code descending
+            query = query.order_by(Challan.challan_code.desc())
+            
+            # Paginate
+            pagination = query.paginate(
+                page=page,
+                per_page=per_page,
+                error_out=False
+            )
+            
+            # Format response
+            challans = [challan.serialize() for challan in pagination.items]
+            
+            return jsonify({
+                'challans': challans,
+                'pagination': {
+                    'page': pagination.page,
+                    'pages': pagination.pages,
+                    'per_page': pagination.per_page,
+                    'total': pagination.total,
+                    'has_prev': pagination.has_prev,
+                    'has_next': pagination.has_next,
+                    'prev_num': pagination.prev_num,
+                    'next_num': pagination.next_num
+                }
+            }), 200
+            
+        except Exception as e:
+            print(f"Error fetching challans: {str(e)}")
+            return jsonify({'error': str(e)}), 500
 
     # New endpoint to mark a challan as printed
     @app.route('/api/challans/<int:id>/mark-printed', methods=['PUT'])
@@ -600,9 +635,35 @@ def register_routes(app):
     @app.route('/api/challan-code', methods=['GET'])
     @jwt_required()
     def generate_challan_code():
-        max_challan_code = db.session.query(db.func.max(Challan.id)).scalar()
-        new_challan_code = f"DC-{max_challan_code + 1:04d}" if max_challan_code else "DC-0001"
-        return jsonify({"challan_code": new_challan_code}), 200
+        try:
+            # Get the latest challan code from the database
+            latest_challan = Challan.query.order_by(Challan.id.desc()).first()
+            
+            if latest_challan:
+                # Extract number from the latest challan code
+                latest_code = latest_challan.challan_code
+                if '-' in latest_code:
+                    prefix, number_str = latest_code.split('-', 1)
+                    try:
+                        number = int(number_str) + 1
+                    except ValueError:
+                        number = 1
+                else:
+                    try:
+                        number = int(latest_code) + 1
+                    except ValueError:
+                        number = 1
+            else:
+                number = 1
+            
+            # Return without zero padding - just the raw number
+            new_challan_code = f"DC-{number}"
+            
+            return jsonify({'challan_code': new_challan_code}), 200
+            
+        except Exception as e:
+            print(f"Error generating challan code: {str(e)}")
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/api/used-plates', methods=['GET'])
     @jwt_required()
