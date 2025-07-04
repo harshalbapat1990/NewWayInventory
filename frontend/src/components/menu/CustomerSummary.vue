@@ -825,7 +825,7 @@ export default {
           // Use processed items instead of previewItemsData
           items: processedItems.map(item => ({
             plate_size_id: item.plateSizeId,
-            description: `${item.plateSize} PS Plates - ${item.colours} ${item.colours === 1 ? 'colour' : 'colours'}${item.withBaking ? ' with Baking' : ''}`,
+            description: `${item.plateSize} - ${item.colours} ${item.colours === 1 ? 'colour' : 'colours'}${item.withBaking ? ' with Baking' : ''}`,
             colours: item.colours,
             quantity: item.quantity,
             rate: item.rate * item.colours, // Store rate multiplied by colours for invoice display

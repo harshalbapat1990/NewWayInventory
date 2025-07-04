@@ -915,12 +915,20 @@ export default {
         queryParams.append('per_page', '1000'); // Get all invoices for the date
         
         const response = await axios.get(`/invoices?${queryParams.toString()}`);
-        const invoices = response.data.invoices;
+        let invoices = response.data.invoices;
         
         if (invoices.length === 0) {
           alert('No invoices found for the selected date.');
           return;
         }
+        
+        // Sort invoices by invoice number in ascending order
+        invoices = invoices.sort((a, b) => {
+          // Extract numeric part from invoice numbers for proper sorting
+          const numA = parseInt(a.invoice_number.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.invoice_number.replace(/\D/g, '')) || 0;
+          return numA - numB;
+        });
         
         // Process each invoice to get detailed data
         const exportData = [];
@@ -950,6 +958,7 @@ export default {
     },
     
     mapInvoiceToTallyFormat(invoice, customer, invoiceDetails) {
+      console.log(invoice)
       const exportRows = [];
       const invoiceDate = moment(invoice.invoice_date).format('DD-MM-YYYY');
       const customerAddress = `${customer.address || ''}, ${customer.city || ''}, ${customer.state || ''} ${customer.pin_code || ''}`.replace(/^,\s*|,\s*$/, '');
@@ -982,6 +991,9 @@ export default {
       
       // 2. Individual item sales entries (credits)
       invoiceDetails.items.forEach(item => {
+        // Use job_ids (challan IDs) as Item Description
+        const challanIds = item.job_ids || '';
+        
         exportRows.push({
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
@@ -992,7 +1004,7 @@ export default {
           'Ledger Amount Dr/Cr': 'Cr', // Negative for credit (sales)
           'Item Allocations - Godown Name': 'Main Location',
           'Item Name': item.description,
-          'Item Description': item.description,
+          'Item Description': challanIds, // Using challan IDs instead of description
           'Billed Quantity': item.quantity,
           'Item Rate': item.rate,
           'Item Rate per': '/Unit',
