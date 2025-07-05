@@ -1007,7 +1007,7 @@ export default {
           'Item Description': challanIds, // Using challan IDs instead of description
           'Billed Quantity': item.quantity,
           'Item Rate': item.rate,
-          'Item Rate per': '/Unit',
+          'Item Rate per': 'NO',
           'Item Amount': item.amount,
           'Change Mode': 'Item Invoice'
         });

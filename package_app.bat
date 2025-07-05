@@ -20,13 +20,9 @@ for /d %%F in ("%DEST_BASE_DIR%\v1.*") do (
     REM Extract version number using string substitution - remove "v1." prefix
     set "VERSION_STR=!FOLDER_NAME:v1.=!"
     
-    REM Remove leading zeros to avoid octal interpretation
-    set "VERSION_STR=!VERSION_STR:0=!"
-    if "!VERSION_STR!"=="" set "VERSION_STR=0"
-    
-    REM Convert to number
-    set /a VERSION_NUM=!VERSION_STR!
-    echo Extracted version: !VERSION_STR! >> package_log.txt
+    REM Convert directly to number (batch automatically handles leading zeros)
+    set /a VERSION_NUM=1!VERSION_STR! - 100
+    echo Processing version string: !VERSION_STR! >> package_log.txt
     echo As number: !VERSION_NUM! >> package_log.txt
     
     REM Keep track of highest version number
@@ -51,6 +47,13 @@ echo Next version folder will be: !NEXT_VERSION! >> package_log.txt
 REM Define the destination directory for the new version
 set DEST_DIR=%DEST_BASE_DIR%\%NEXT_VERSION%
 set INVENTORY_APP_DIR=%DEST_DIR%\InventoryApp
+
+REM Check if destination already exists and handle it
+if exist "%DEST_DIR%" (
+    echo Warning: Destination directory %DEST_DIR% already exists! >> package_log.txt
+    echo Removing existing directory... >> package_log.txt
+    rmdir /s /q "%DEST_DIR%" >> package_log.txt 2>&1
+)
 
 echo Creating directories at: !DEST_DIR! >> package_log.txt
 
