@@ -750,7 +750,9 @@ def register_routes(app):
                 igst_amount=data.get('igst_amount', 0),
                 grand_total=data['grand_total'],
                 challan_references=data.get('challan_references', ''),
-                status=data.get('status', 'unpaid')
+                status=data.get('status', 'unpaid'),
+                summary_start_date=datetime.strptime(data.get('summary_start_date'), '%Y-%m-%d').date() if data.get('summary_start_date') else None,
+                summary_end_date=datetime.strptime(data.get('summary_end_date'), '%Y-%m-%d').date() if data.get('summary_end_date') else None
             )
             
             db.session.add(new_invoice)
@@ -973,6 +975,7 @@ def register_routes(app):
             subject = request.form.get('subject')
             message_text = request.form.get('message')
             pdf_file = request.files.get('pdf')
+            summary_pdf_file = request.files.get('summary_pdf')  # <-- Add this line
 
             if not all([invoice_id, email, subject]):
                 return jsonify({'error': 'Missing required fields'}), 400
@@ -995,7 +998,7 @@ def register_routes(app):
                     body=message_text
                 )
 
-                # Attach PDF if provided
+                # Attach invoice PDF if provided
                 if pdf_file:
                     msg.attach(
                         filename='invoice.pdf',
@@ -1003,11 +1006,18 @@ def register_routes(app):
                         data=pdf_file.read()
                     )
 
+                # Attach summary PDF if provided
+                if summary_pdf_file:
+                    msg.attach(
+                        filename='customer_summary.pdf',
+                        content_type='application/pdf',
+                        data=summary_pdf_file.read()
+                    )
+
                 mail.send(msg)
                 return jsonify({'message': 'Email sent successfully'})
 
             except Exception as email_error:
-                # print(f"Email Sending Error: {str(email_error)}")
                 return jsonify({'error': f'Failed to send email: {str(email_error)}'}), 500
 
         except Exception as e:

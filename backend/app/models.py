@@ -235,6 +235,8 @@ class Invoice(db.Model):
     status = db.Column(db.String(20), default='unpaid')  # unpaid, paid, cancelled
     payment_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    summary_start_date = db.Column(db.Date, nullable=True)
+    summary_end_date = db.Column(db.Date, nullable=True)
     
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
@@ -259,6 +261,8 @@ class Invoice(db.Model):
             'status': self.status,
             'payment_date': self.payment_date.isoformat() if self.payment_date else None,
             'created_at': self.created_at.isoformat(),
+            'summary_start_date': self.summary_start_date.isoformat() if self.summary_start_date else None,
+            'summary_end_date': self.summary_end_date.isoformat() if self.summary_end_date else None,
             'items': [item.serialize() for item in self.items]
         }
 

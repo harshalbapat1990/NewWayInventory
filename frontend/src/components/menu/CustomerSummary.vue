@@ -840,7 +840,9 @@ export default {
             amount: item.amount * item.colours, // Store amount multiplied by colours
             jobs: item.jobs,
             hasBaking: item.jobs.some(job => job.remark && job.remark.toLowerCase().includes('baking'))
-          }))
+          })),
+          summary_start_date: this.startDate, // Add start date of the summary
+          summary_end_date: this.endDate,     // Add end date of the summary
         };
 
         // Send to API
@@ -1177,7 +1179,9 @@ export default {
                 amount: item.finalAmount || (item.quantity * item.rate * item.colours), // Fixed: Use correct amount
                 jobs: item.jobs, // Include full jobs array with challan numbers
                 hasBaking: item.withBaking // Use the withBaking flag
-              }))
+              })),
+              summary_start_date: this.bulkInvoiceStartDate, // Add start date of the summary
+              summary_end_date: this.bulkInvoiceEndDate,     // Add end date of the summary
             };
 
             await axios.post('/invoices', invoiceToSave);

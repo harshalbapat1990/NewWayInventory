@@ -220,6 +220,13 @@
             <span class="ml-2 text-gray-700">Attach invoice PDF</span>
           </label>
         </div>
+
+        <div v-if="selectedInvoice?.summary_start_date && selectedInvoice?.summary_end_date" class="mb-4">
+          <label class="inline-flex items-center">
+            <input type="checkbox" v-model="emailData.includeSummaryPdf" class="form-checkbox h-5 w-5 text-blue-600">
+            <span class="ml-2 text-gray-700">Attach customer summary PDF</span>
+          </label>
+        </div>
       </div>
 
       <div class="flex justify-end space-x-3 mt-6">
@@ -275,6 +282,7 @@
 import axios from '../../axios';
 import moment from 'moment';
 import { printTaxInvoice } from '../../utils/printTaxInvoice';
+import { printCustomerSummary } from '../../utils/printCustomerSummary';
 import * as XLSX from 'xlsx';
 
 export default {
@@ -308,7 +316,8 @@ export default {
       emailData: {
         subject: '',
         message: '',
-        includePdf: true
+        includePdf: true,
+        includeSummaryPdf: false
       },
       exportDate: '',
       isSending: false,
@@ -757,7 +766,8 @@ export default {
       this.emailData = {
         subject: '',
         message: '',
-        includePdf: true
+        includePdf: true,
+        includeSummaryPdf: false
       };
     },
     async sendEmail() {
@@ -865,18 +875,90 @@ export default {
           false // Don't auto-print
         );
 
-        // Create FormData with the PDF
+        // Prepare FormData
         const formData = new FormData();
         formData.append('invoice_id', this.selectedInvoice.id);
         formData.append('email', this.selectedCustomerEmail);
         formData.append('subject', this.emailData.subject);
         formData.append('message', this.emailData.message);
+
+        // Attach invoice PDF if selected
         if (this.emailData.includePdf) {
           formData.append('pdf', pdfBlob, 'invoice.pdf');
         }
 
-        // Send email with PDF attachment
-        const response = await axios.post('/send-invoice-email', formData, {
+        // Attach summary PDF if selected and dates are available
+        if (
+          this.emailData.includeSummaryPdf &&
+          this.selectedInvoice.summary_start_date &&
+          this.selectedInvoice.summary_end_date
+        ) {
+          // Fetch summary data (reuse logic from CustomerSummary.vue)
+          const summaryResponse = await axios.get('/challans', {
+            params: {
+              customer_id: this.selectedInvoice.customer_id,
+              start_date: this.selectedInvoice.summary_start_date,
+              end_date: this.selectedInvoice.summary_end_date,
+              per_page: 1000
+            }
+          });
+          const challans = summaryResponse.data.challans || summaryResponse.data;
+          // Group challans as in CustomerSummary.vue
+          const plateSizes = await axios.get('/plate-summary').then(r => r.data);
+          const grouped = [];
+          challans.forEach((challan) => {
+            challan.jobs.forEach((job) => {
+              const plateSize = plateSizes.find(plate => plate.size_id === job.plate_size_id);
+              if (!plateSize) return;
+              const size = `${plateSize.length}x${plateSize.width}${plateSize.is_dl ? '-DL' : ''}`;
+              let plateGroup = grouped.find(group => group.size === size);
+              if (!plateGroup) {
+                plateGroup = { size, sizeId: plateSize.size_id, colours: [] };
+                grouped.push(plateGroup);
+              }
+              let colourGroup = plateGroup.colours.find(group => group.colour === job.colour);
+              if (!colourGroup) {
+                colourGroup = { colour: job.colour, challans: [] };
+                plateGroup.colours.push(colourGroup);
+              }
+              let challanGroup = colourGroup.challans.find(group =>
+                group.challan_no === (challan.challan_code.split('-')[1] || challan.challan_code)
+              );
+              if (!challanGroup) {
+                challanGroup = {
+                  challan_no: challan.challan_code.split('-')[1] || challan.challan_code,
+                  jobs: []
+                };
+                colourGroup.challans.push(challanGroup);
+              }
+              challanGroup.jobs.push({
+                job_id: job.job_id,
+                quantity: job.quantity,
+                job_name: job.job_name,
+                remark: job.remark,
+              });
+            });
+          });
+
+          // Generate summary PDF as Blob
+          const summaryPdfBlob = await new Promise(resolve => {
+            // printCustomerSummary opens a window, but we want a Blob for email
+            // So, you need to modify printCustomerSummary to return a Blob if requested
+            // For now, let's assume you have a printCustomerSummaryBlob function:
+            import('../../utils/printCustomerSummary').then(mod => {
+              mod.printCustomerSummaryBlob(
+                grouped,
+                customerData.company_name,
+                this.selectedInvoice.summary_start_date,
+                this.selectedInvoice.summary_end_date
+              ).then(blob => resolve(blob));
+            });
+          });
+          formData.append('summary_pdf', summaryPdfBlob, 'customer_summary.pdf');
+        }
+
+        // Send email with attachments
+        await axios.post('/send-invoice-email', formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
@@ -958,7 +1040,6 @@ export default {
     },
     
     mapInvoiceToTallyFormat(invoice, customer, invoiceDetails) {
-      console.log(invoice)
       const exportRows = [];
       const invoiceDate = moment(invoice.invoice_date).format('DD-MM-YYYY');
       const customerAddress = `${customer.address || ''}, ${customer.city || ''}, ${customer.state || ''} ${customer.pin_code || ''}`.replace(/^,\s*|,\s*$/, '');
