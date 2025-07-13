@@ -1079,6 +1079,7 @@ export default {
                       bakingRate: bakingRate,
                       rate: plateRate,
                       amount: regularQuantity * plateRate,
+                      withBaking: false, // Add this flag
                       jobs: regularJobs // Include the full jobs array with challan numbers
                     });
                   }
@@ -1099,8 +1100,9 @@ export default {
                       rateType: 'baking_rate',
                       plateRate: plateRate,
                       bakingRate: bakingRate,
-                      rate: plateRate + bakingRate,
-                      amount: bakingQuantity * (plateRate + bakingRate),
+                      rate: plateRate + bakingRate, // Use combined rate for baking
+                      amount: bakingQuantity * (plateRate + bakingRate), // Use combined rate
+                      withBaking: true, // Add this flag
                       jobs: bakingJobs // Include the full jobs array with challan numbers
                     });
                   }
@@ -1109,29 +1111,27 @@ export default {
             });
 
             if (this.previewItemsData.length === 0) {
-              alert('No billable items found. All jobs are marked as "No bill" or "Consult".');
-              return;
+              results.skipped.push(`${customer.company_name} (no billable items)`);
+              continue; // Skip to next customer
             }
 
             // Prepare delivery challan references
-            const deliveryChallanRef = this.groupedChallans.flatMap(plateGroup => 
+            const deliveryChallanRef = grouped.flatMap(plateGroup => 
               plateGroup.colours.flatMap(colorGroup => 
                 colorGroup.challans.map(challan => challan.challan_no)
               )
-            ).join(', ').substring(0, 30);
+            ).join(', ').substring(0, 200);
 
-            // Calculate totals using similar logic from calculateTotal method
+            // Calculate totals using the correct rates
             const totals = (() => {
               const subtotal = this.previewItemsData.reduce((sum, item) => {
-                const baseRate = item.withBaking ? 
-                  (item.plateRate + item.bakingRate) : 
-                  item.plateRate;
-                
-                const rateWithColors = baseRate * item.colours;
+                // Use the rate that includes colours multiplier
+                const rateWithColors = item.rate * item.colours;
                 const amount = item.quantity * rateWithColors;
                 
-                item.rate = rateWithColors;
-                item.amount = amount;
+                // Update item for later use
+                item.finalRate = rateWithColors;
+                item.finalAmount = amount;
                 
                 return sum + amount;
               }, 0);
@@ -1170,13 +1170,13 @@ export default {
               status: 'unpaid',
               items: this.previewItemsData.map(item => ({
                 plate_size_id: item.plateSizeId,
-                description: `${item.plateSize} PS Plates - ${item.colours} ${item.colours === 1 ? 'colour' : 'colours'}${item.withBaking ? ' with Baking' : ''}`,
+                description: `${item.plateSize} - ${item.colours} ${item.colours === 1 ? 'colour' : 'colours'}${item.withBaking ? ' with Baking' : ''}`, // Fixed: Include baking text
                 colours: item.colours,
                 quantity: item.quantity,
-                rate: item.rate,
-                amount: item.amount,
+                rate: item.finalRate || (item.rate * item.colours), // Fixed: Use correct rate with colours
+                amount: item.finalAmount || (item.quantity * item.rate * item.colours), // Fixed: Use correct amount
                 jobs: item.jobs, // Include full jobs array with challan numbers
-                hasBaking: item.jobs.some(job => job.remark && job.remark.toLowerCase().includes('baking'))
+                hasBaking: item.withBaking // Use the withBaking flag
               }))
             };
 
@@ -1198,7 +1198,7 @@ export default {
         // Show results notification
         let message = `Successfully generated ${results.success.length} invoices.\n`;
         if (results.skipped.length) {
-          message += `\nSkipped ${results.skipped.length} customers with no billable items:\n${results.skipped.join(', ')}`;
+          message += `\nSkipped ${results.skipped.length} customers:\n${results.skipped.join(', ')}`;
         }
         if (results.failed.length) {
           message += `\nFailed to generate invoices for ${results.failed.length} customers:\n${results.failed.join(', ')}`;
