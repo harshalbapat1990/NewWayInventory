@@ -1043,23 +1043,33 @@ export default {
       const exportRows = [];
       const invoiceDate = moment(invoice.invoice_date).format('DD-MM-YYYY');
       const customerAddress = `${customer.address || ''}, ${customer.city || ''}, ${customer.state || ''} ${customer.pin_code || ''}`.replace(/^,\s*|,\s*$/, '');
-      
+
+      // New fields
+      const placeOfSupply = 'Maharashtra';
+      const country = 'India';
+      const state = customer.state || '';
+      const gstin = customer.gstin || '';
+
       // Calculate actual subtotal from items
       const actualSubtotal = invoiceDetails.items.reduce((sum, item) => sum + item.amount, 0);
       const cgst = invoice.cgst_amount || 0;
       const sgst = invoice.sgst_amount || 0;
       const calculatedTotal = actualSubtotal + cgst + sgst;
       const roundingAdjustment = invoice.grand_total - calculatedTotal;
-      
+
       // 1. Main customer debit entry
       exportRows.push({
         'Voucher Date': invoiceDate,
         'Voucher Type Name': 'Sales',
         'Voucher Number': invoice.invoice_number,
         'Buyer/Supplier - Address': customerAddress,
+        'Buyer/Supplier - Place of Supply': placeOfSupply,
+        'Buyer/Supplier - Country': country,
+        'Buyer/Supplier - State': state,
+        'Buyer/Supplier - GSTIN/UIN': gstin,
         'Ledger Name': customer.company_name,
-        'Ledger Amount': invoice.grand_total, // Total invoice value
-        'Ledger Amount Dr/Cr': 'Dr', // Positive for debit (customer owes us)
+        'Ledger Amount': invoice.grand_total,
+        'Ledger Amount Dr/Cr': 'Dr',
         'Item Allocations - Godown Name': 'Main Location',
         'Item Name': '',
         'Item Description': '',
@@ -1072,20 +1082,22 @@ export default {
       
       // 2. Individual item sales entries (credits)
       invoiceDetails.items.forEach(item => {
-        // Use job_ids (challan IDs) as Item Description
         const challanIds = item.job_ids || '';
-        
         exportRows.push({
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
           'Buyer/Supplier - Address': customerAddress,
+          'Buyer/Supplier - Place of Supply': placeOfSupply,
+          'Buyer/Supplier - Country': country,
+          'Buyer/Supplier - State': state,
+          'Buyer/Supplier - GSTIN/UIN': gstin,
           'Ledger Name': 'CTP SALE @18% GST',
-          'Ledger Amount': item.amount, // Item amount (will be negative for credit)
-          'Ledger Amount Dr/Cr': 'Cr', // Negative for credit (sales)
+          'Ledger Amount': item.amount,
+          'Ledger Amount Dr/Cr': 'Cr',
           'Item Allocations - Godown Name': 'Main Location',
           'Item Name': item.description,
-          'Item Description': challanIds, // Using challan IDs instead of description
+          'Item Description': challanIds,
           'Billed Quantity': item.quantity,
           'Item Rate': item.rate,
           'Item Rate per': 'NO',
@@ -1093,7 +1105,7 @@ export default {
           'Change Mode': 'Item Invoice'
         });
       });
-      
+
       // 3. CGST Entry (credit)
       if (invoice.cgst_amount > 0) {
         exportRows.push({
@@ -1101,9 +1113,13 @@ export default {
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
           'Buyer/Supplier - Address': customerAddress,
+          'Buyer/Supplier - Place of Supply': placeOfSupply,
+          'Buyer/Supplier - Country': country,
+          'Buyer/Supplier - State': state,
+          'Buyer/Supplier - GSTIN/UIN': gstin,
           'Ledger Name': 'OUTPUT CGST @09% - CENTRAL TAX',
           'Ledger Amount': invoice.cgst_amount,
-          'Ledger Amount Dr/Cr': 'Cr', // Credit
+          'Ledger Amount Dr/Cr': 'Cr',
           'Item Allocations - Godown Name': 'Main Location',
           'Item Name': '',
           'Item Description': '',
@@ -1122,9 +1138,13 @@ export default {
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
           'Buyer/Supplier - Address': customerAddress,
+          'Buyer/Supplier - Place of Supply': placeOfSupply,
+          'Buyer/Supplier - Country': country,
+          'Buyer/Supplier - State': state,
+          'Buyer/Supplier - GSTIN/UIN': gstin,
           'Ledger Name': 'OUTPUT SGST @09% - STATE TAX',
           'Ledger Amount': invoice.sgst_amount,
-          'Ledger Amount Dr/Cr': 'Cr', // Credit
+          'Ledger Amount Dr/Cr': 'Cr',
           'Item Allocations - Godown Name': 'Main Location',
           'Item Name': '',
           'Item Description': '',
@@ -1136,13 +1156,17 @@ export default {
         });
       }
       
-      // 5. Round Up entry (if applicable) - Calculate dynamically
-      if (Math.abs(roundingAdjustment) > 0.01) { // Only include if rounding is significant (more than 1 paisa)
+      // 5. Round Up entry (if applicable)
+      if (Math.abs(roundingAdjustment) > 0.01) {
         exportRows.push({
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
           'Buyer/Supplier - Address': customerAddress,
+          'Buyer/Supplier - Place of Supply': placeOfSupply,
+          'Buyer/Supplier - Country': country,
+          'Buyer/Supplier - State': state,
+          'Buyer/Supplier - GSTIN/UIN': gstin,
           'Ledger Name': 'ROUND UP',
           'Ledger Amount': Math.abs(roundingAdjustment).toFixed(2),
           'Ledger Amount Dr/Cr': roundingAdjustment > 0 ? 'Cr' : 'Dr',
