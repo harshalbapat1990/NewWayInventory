@@ -1077,7 +1077,10 @@ export default {
         'Item Rate': '',
         'Item Rate per': '',
         'Item Amount': '',
-        'Change Mode': 'Item Invoice'
+        'Change Mode': 'Item Invoice',
+        'Bill Type of Ref': 'New Ref',
+        'Bill Name': invoice.invoice_number,
+        'Bill Amount': invoice.grand_total
       });
       
       // 2. Individual item sales entries (credits)
@@ -1087,11 +1090,11 @@ export default {
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
-          'Buyer/Supplier - Address': customerAddress,
-          'Buyer/Supplier - Place of Supply': placeOfSupply,
-          'Buyer/Supplier - Country': country,
-          'Buyer/Supplier - State': state,
-          'Buyer/Supplier - GSTIN/UIN': gstin,
+          'Buyer/Supplier - Address': '',
+          'Buyer/Supplier - Place of Supply': '',
+          'Buyer/Supplier - Country': '',
+          'Buyer/Supplier - State': '',
+          'Buyer/Supplier - GSTIN/UIN': '',
           'Ledger Name': 'CTP SALE @18% GST',
           'Ledger Amount': item.amount,
           'Ledger Amount Dr/Cr': 'Cr',
@@ -1102,7 +1105,10 @@ export default {
           'Item Rate': item.rate,
           'Item Rate per': 'NO',
           'Item Amount': item.amount,
-          'Change Mode': 'Item Invoice'
+          'Change Mode': 'Item Invoice',
+          'Bill Type of Ref': '',
+          'Bill Name': '',
+          'Bill Amount': ''
         });
       });
 
@@ -1112,11 +1118,11 @@ export default {
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
-          'Buyer/Supplier - Address': customerAddress,
-          'Buyer/Supplier - Place of Supply': placeOfSupply,
-          'Buyer/Supplier - Country': country,
-          'Buyer/Supplier - State': state,
-          'Buyer/Supplier - GSTIN/UIN': gstin,
+          'Buyer/Supplier - Address': '',
+          'Buyer/Supplier - Place of Supply': '',
+          'Buyer/Supplier - Country': '',
+          'Buyer/Supplier - State': '',
+          'Buyer/Supplier - GSTIN/UIN': '',
           'Ledger Name': 'OUTPUT CGST @09% - CENTRAL TAX',
           'Ledger Amount': invoice.cgst_amount,
           'Ledger Amount Dr/Cr': 'Cr',
@@ -1127,7 +1133,10 @@ export default {
           'Item Rate': '',
           'Item Rate per': '',
           'Item Amount': '',
-          'Change Mode': 'Item Invoice'
+          'Change Mode': 'Item Invoice',
+          'Bill Type of Ref': '',
+          'Bill Name': '',
+          'Bill Amount': ''
         });
       }
       
@@ -1137,11 +1146,11 @@ export default {
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
-          'Buyer/Supplier - Address': customerAddress,
-          'Buyer/Supplier - Place of Supply': placeOfSupply,
-          'Buyer/Supplier - Country': country,
-          'Buyer/Supplier - State': state,
-          'Buyer/Supplier - GSTIN/UIN': gstin,
+          'Buyer/Supplier - Address': '',
+          'Buyer/Supplier - Place of Supply': '',
+          'Buyer/Supplier - Country': '',
+          'Buyer/Supplier - State': '',
+          'Buyer/Supplier - GSTIN/UIN': '',
           'Ledger Name': 'OUTPUT SGST @09% - STATE TAX',
           'Ledger Amount': invoice.sgst_amount,
           'Ledger Amount Dr/Cr': 'Cr',
@@ -1152,7 +1161,10 @@ export default {
           'Item Rate': '',
           'Item Rate per': '',
           'Item Amount': '',
-          'Change Mode': 'Item Invoice'
+          'Change Mode': 'Item Invoice',
+          'Bill Type of Ref': '',
+          'Bill Name': '',
+          'Bill Amount': '' 
         });
       }
       
@@ -1162,11 +1174,11 @@ export default {
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
           'Voucher Number': invoice.invoice_number,
-          'Buyer/Supplier - Address': customerAddress,
-          'Buyer/Supplier - Place of Supply': placeOfSupply,
-          'Buyer/Supplier - Country': country,
-          'Buyer/Supplier - State': state,
-          'Buyer/Supplier - GSTIN/UIN': gstin,
+          'Buyer/Supplier - Address': '',
+          'Buyer/Supplier - Place of Supply': '',
+          'Buyer/Supplier - Country': '',
+          'Buyer/Supplier - State': '',
+          'Buyer/Supplier - GSTIN/UIN': '',
           'Ledger Name': 'ROUND UP',
           'Ledger Amount': Math.abs(roundingAdjustment).toFixed(2),
           'Ledger Amount Dr/Cr': roundingAdjustment > 0 ? 'Cr' : 'Dr',
@@ -1177,7 +1189,10 @@ export default {
           'Item Rate': '',
           'Item Rate per': '',
           'Item Amount': '',
-          'Change Mode': 'Item Invoice'
+          'Change Mode': 'Item Invoice',
+          'Bill Type of Ref': '',
+          'Bill Name': '',
+          'Bill Amount': ''
         });
       }
       
@@ -1197,6 +1212,10 @@ export default {
         { wch: 18 }, // Voucher Type Name
         { wch: 18 }, // Voucher Number
         { wch: 35 }, // Buyer/Supplier - Address
+        { wch: 20 }, // Buyer/Supplier - Place of Supply
+        { wch: 15 }, // Buyer/Supplier - Country
+        { wch: 15 }, // Buyer/Supplier - State
+        { wch: 20 }, // Buyer/Supplier - GSTIN/UIN
         { wch: 30 }, // Ledger Name
         { wch: 15 }, // Ledger Amount
         { wch: 12 }, // Ledger Amount Dr/Cr
@@ -1207,7 +1226,10 @@ export default {
         { wch: 12 }, // Item Rate
         { wch: 12 }, // Item Rate per
         { wch: 15 }, // Item Amount
-        { wch: 15 }  // Change Mode
+        { wch: 15 }, // Change Mode
+        { wch: 15 }, // Bill Type of Ref
+        { wch: 20 }, // Bill Name
+        { wch: 15 }  // Bill Amount
       ];
       ws['!cols'] = colWidths;
       
