@@ -255,6 +255,17 @@
           required
         />
       </div>
+
+      <div class="mb-4">
+        <label for="export-invoice-number" class="block text-sm font-medium text-gray-700 mb-1">Export Specific Invoice Number</label>
+        <input 
+          id="export-invoice-number" 
+          v-model="exportInvoiceNumber" 
+          type="text"
+          class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter Invoice Number"
+        />
+      </div>
       
       <div class="mb-4">
         <p class="text-sm text-gray-600">
@@ -272,6 +283,13 @@
           :disabled="!exportDate || isExporting"
         >
           {{ isExporting ? 'Exporting...' : 'Export' }}
+        </button>
+        <button 
+          @click="exportSpecificInvoice" 
+          class="btn-primary"
+          :disabled="!exportInvoiceNumber || isExporting"
+        >
+          {{ isExporting ? 'Exporting...' : 'Export Specific Invoice' }}
         </button>
       </div>
     </div>
@@ -320,6 +338,7 @@ export default {
         includeSummaryPdf: false
       },
       exportDate: '',
+      exportInvoiceNumber: '',
       isSending: false,
       isExporting: false
     };
@@ -1242,6 +1261,36 @@ export default {
       
       // Trigger download
       XLSX.writeFile(wb, fileName);
+    },
+    async exportSpecificInvoice() {
+      if (!this.exportInvoiceNumber) {
+        alert('Please enter an invoice number.');
+        return;
+      }
+      this.isExporting = true;
+      try {
+        // Fetch the invoice by number
+        const response = await axios.get(`/invoices?invoice_number=${this.exportInvoiceNumber}`);
+        const invoices = response.data.invoices;
+        if (!invoices || invoices.length === 0) {
+          alert('No invoice found with that number.');
+          return;
+        }
+        const invoice = invoices[0];
+        const [customerData, invoiceDetails] = await Promise.all([
+          this.getCustomerById(invoice.customer_id),
+          this.getInvoiceDetails(invoice.id)
+        ]);
+        const exportData = this.mapInvoiceToTallyFormat(invoice, customerData, invoiceDetails);
+        this.createExcelFile(exportData);
+
+        this.closeExportModal();
+      } catch (error) {
+        console.error('Error exporting specific invoice:', error);
+        alert('Error exporting invoice. Please try again.');
+      } finally {
+        this.isExporting = false;
+      }
     }
   },
   mounted() {
