@@ -3741,3 +3741,129 @@ Rebuilding the executable with PyInstaller...
 84988 INFO: Build complete! The results are available in: C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist
 PyInstaller completed with error level: 0 
 Build and packaging complete! The executable is located in the dist folder. 
+Activating the virtual environment... 
+Virtual environment activation completed with error level: 0 
+Rebuilding the executable with PyInstaller... 
+488 INFO: PyInstaller: 6.13.0, contrib hooks: 2025.4
+488 INFO: Python: 3.12.2
+517 INFO: Platform: Windows-11-10.0.26100-SP0
+517 INFO: Python environment: C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\venv
+517 INFO: wrote C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\InventoryAppBackend.spec
+531 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory '
+ 'app\\LatestApp\\backend\\venv\\Scripts\\pyinstaller.exe',
+ 'C:\\Users\\harsh\\AppData\\Local\\Programs\\Python\\Python312\\python312.zip',
+ 'C:\\Users\\harsh\\AppData\\Local\\Programs\\Python\\Python312\\DLLs',
+ 'C:\\Users\\harsh\\AppData\\Local\\Programs\\Python\\Python312\\Lib',
+ 'C:\\Users\\harsh\\AppData\\Local\\Programs\\Python\\Python312',
+ 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory '
+ 'app\\LatestApp\\backend\\venv',
+ 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory '
+ 'app\\LatestApp\\backend\\venv\\Lib\\site-packages',
+ 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory '
+ 'app\\LatestApp\\backend\\venv\\Lib\\site-packages\\setuptools\\_vendor',
+ 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory '
+ 'app\\LatestApp\\backend']
+1147 INFO: Appending 'datas' from .spec
+1147 INFO: checking Analysis
+1186 INFO: Building because _input_datas changed
+1186 INFO: Running Analysis Analysis-00.toc
+1186 INFO: Target bytecode optimization level: 0
+1186 INFO: Initializing module dependency graph...
+1188 INFO: Initializing module graph hook caches...
+1259 INFO: Analyzing modules for base_library.zip ...
+2810 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+3139 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+8304 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+16197 INFO: Caching module dependency graph...
+16276 INFO: Looking for Python shared library...
+16308 INFO: Using Python shared library: C:\Users\harsh\AppData\Local\Programs\Python\Python312\python312.dll
+16308 INFO: Analyzing C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\run.py
+17876 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+17898 INFO: SetuptoolsInfo: initializing cached setuptools info...
+27344 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+27553 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+27868 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+29103 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31161 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31566 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+31571 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+31625 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31768 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+31975 INFO: Processing pre-safe-import-module hook 'hook-jaraco.functools.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+31990 INFO: Setuptools: 'jaraco.functools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.functools'!
+32043 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+32050 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+33119 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33183 INFO: Processing standard module hook 'hook-packaging.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+33851 INFO: Processing pre-safe-import-module hook 'hook-jaraco.text.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33861 INFO: Setuptools: 'jaraco.text' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.text'!
+33884 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+33900 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33900 INFO: Processing pre-safe-import-module hook 'hook-jaraco.context.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33900 INFO: Setuptools: 'jaraco.context' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco.context'!
+33968 INFO: Processing pre-safe-import-module hook 'hook-backports.tarfile.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33980 INFO: Setuptools: 'backports.tarfile' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.backports.tarfile'!
+34213 INFO: Processing standard module hook 'hook-backports.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+35603 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+35603 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+37612 INFO: Processing standard module hook 'hook-pkg_resources.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+38051 INFO: Processing pre-safe-import-module hook 'hook-platformdirs.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+38051 INFO: Setuptools: 'platformdirs' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.platformdirs'!
+38413 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+38413 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+39381 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+39381 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+39397 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+40318 INFO: Processing standard module hook 'hook-jinja2.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+45737 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+60465 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+61077 INFO: Processing standard module hook 'hook-mako.codegen.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+66109 INFO: Processing standard module hook 'hook-reportlab.lib.utils.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+66256 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+66509 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+67326 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+67461 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+68963 INFO: Processing standard module hook 'hook-reportlab.pdfbase._fontdata.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+75647 INFO: Processing standard module hook 'hook-pyphen.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+78852 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+79154 INFO: Processing module hooks (post-graph stage)...
+79169 WARNING: Hidden import "tzdata" not found!
+80534 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+81486 INFO: Processing standard module hook 'hook-sqlalchemy.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+82020 WARNING: Hidden import "pysqlite2" not found!
+82024 WARNING: Hidden import "MySQLdb" not found!
+82412 INFO: Processing standard module hook 'hook-sqlite3.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+83513 INFO: Performing binary vs. data reclassification (104 entries)
+86317 INFO: Looking for ctypes DLLs
+86477 INFO: Analyzing run-time hooks ...
+86486 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+86517 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+86533 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+86566 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+86581 INFO: Including run-time hook 'pyi_rth_pkgres.py' from 'C:\\Users\\harsh\\OneDrive\\Work\\Inventory app\\Inventory app\\LatestApp\\backend\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+86661 INFO: Creating base_library.zip...
+86845 INFO: Looking for dynamic libraries
+88701 INFO: Extra DLL search directories (AddDllDirectory): []
+88701 INFO: Extra DLL search directories (PATH): []
+90369 INFO: Warnings written to C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\build\InventoryAppBackend\warn-InventoryAppBackend.txt
+90696 INFO: Graph cross-reference written to C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\build\InventoryAppBackend\xref-InventoryAppBackend.html
+90879 INFO: checking PYZ
+91128 INFO: checking PKG
+91160 INFO: Building because toc changed
+91160 INFO: Building PKG (CArchive) InventoryAppBackend.pkg
+101248 INFO: Building PKG (CArchive) InventoryAppBackend.pkg completed successfully.
+101264 INFO: Bootloader C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+101264 INFO: checking EXE
+101302 INFO: Rebuilding EXE-00.toc because InventoryAppBackend.exe missing
+101302 INFO: Building EXE from EXE-00.toc
+101302 INFO: Copying bootloader EXE to C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist\InventoryAppBackend.exe
+101472 INFO: Copying icon to EXE
+101565 INFO: Copying 0 resources to EXE
+101565 INFO: Embedding manifest in EXE
+102216 INFO: Appending PKG archive to EXE
+102356 INFO: Fixing EXE headers
+107033 INFO: Building EXE from EXE-00.toc completed successfully.
+107047 INFO: Build complete! The results are available in: C:\Users\harsh\OneDrive\Work\Inventory app\Inventory app\LatestApp\backend\dist
+PyInstaller completed with error level: 0 
+Build and packaging complete! The executable is located in the dist folder. 

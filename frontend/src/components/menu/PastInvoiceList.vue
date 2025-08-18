@@ -753,7 +753,7 @@ export default {
         subject: '',
         message: '',
         includePdf: true,
-        includeSummaryPdf: false
+        includeSummaryPdf: true
       };
     },
     async sendEmail() {
