@@ -738,7 +738,8 @@ export default {
         this.emailData = {
           subject: `Invoice ${invoice.invoice_number} from New Way Typesetters and Processors`,
           message: `Dear ${customer.contact_person || 'Customer'},\n\nPlease find attached invoice ${invoice.invoice_number} for your records.\n\nThank you for your business.\n\nRegards,\nAccounts Department\nNew Way Typesetters and Processors`,
-          includePdf: true
+          includePdf: true,
+          includeSummaryPdf: true 
         };
 
         this.showEmailModalFlag = true;
