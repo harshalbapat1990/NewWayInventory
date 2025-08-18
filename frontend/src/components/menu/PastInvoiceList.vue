@@ -59,8 +59,8 @@
       <!-- Pagination Info -->
       <div class="mb-4 flex justify-between items-center">
         <div class="text-sm text-gray-700">
-          Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }} to 
-          {{ Math.min(pagination.page * pagination.per_page, pagination.total) }} of 
+          Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }} to
+          {{ Math.min(pagination.page * pagination.per_page, pagination.total) }} of
           {{ pagination.total }} invoices
         </div>
         <div class="text-sm text-gray-700">
@@ -122,51 +122,33 @@
       <!-- Pagination Controls -->
       <div class="mt-6 flex justify-between items-center">
         <div class="flex gap-2">
-          <button 
-            @click="goToPage(1)"
-            :disabled="!pagination.has_prev"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button @click="goToPage(1)" :disabled="!pagination.has_prev"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
             First
           </button>
-          <button 
-            @click="goToPage(pagination.prev_num)"
-            :disabled="!pagination.has_prev"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button @click="goToPage(pagination.prev_num)" :disabled="!pagination.has_prev"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
             Previous
           </button>
         </div>
 
         <!-- Page numbers -->
         <div class="flex gap-1">
-          <button 
-            v-for="page in visiblePageNumbers" 
-            :key="page"
-            @click="goToPage(page)"
-            :class="{
-              'bg-blue-500 text-white': page === pagination.page,
-              'bg-white hover:bg-gray-50': page !== pagination.page
-            }"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm"
-          >
+          <button v-for="page in visiblePageNumbers" :key="page" @click="goToPage(page)" :class="{
+            'bg-blue-500 text-white': page === pagination.page,
+            'bg-white hover:bg-gray-50': page !== pagination.page
+          }" class="px-3 py-1 border border-gray-300 rounded-md text-sm">
             {{ page }}
           </button>
         </div>
 
         <div class="flex gap-2">
-          <button 
-            @click="goToPage(pagination.next_num)"
-            :disabled="!pagination.has_next"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button @click="goToPage(pagination.next_num)" :disabled="!pagination.has_next"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
             Next
           </button>
-          <button 
-            @click="goToPage(pagination.pages)"
-            :disabled="!pagination.has_next"
-            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button @click="goToPage(pagination.pages)" :disabled="!pagination.has_next"
+            class="px-3 py-1 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
             Last
           </button>
         </div>
@@ -244,29 +226,22 @@
   <div v-if="showExportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded-lg shadow-lg w-1/3">
       <h2 class="text-xl font-semibold mb-4">Export Invoices to Excel</h2>
-      
+
       <div class="mb-4">
         <label for="export-date" class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
-        <input 
-          id="export-date" 
-          v-model="exportDate" 
-          type="date"
+        <input id="export-date" v-model="exportDate" type="date"
           class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          required
-        />
+          required />
       </div>
 
       <div class="mb-4">
-        <label for="export-invoice-number" class="block text-sm font-medium text-gray-700 mb-1">Export Specific Invoice Number</label>
-        <input 
-          id="export-invoice-number" 
-          v-model="exportInvoiceNumber" 
-          type="text"
+        <label for="export-invoice-number" class="block text-sm font-medium text-gray-700 mb-1">Export Specific Invoice
+          Number</label>
+        <input id="export-invoice-number" v-model="exportInvoiceNumber" type="text"
           class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter Invoice Number"
-        />
+          placeholder="Enter Invoice Number" />
       </div>
-      
+
       <div class="mb-4">
         <p class="text-sm text-gray-600">
           This will export all invoices created on the selected date in Tally-compatible format.
@@ -277,18 +252,10 @@
         <button @click="closeExportModal" class="btn-secondary">
           Cancel
         </button>
-        <button 
-          @click="exportToExcel" 
-          class="btn-primary" 
-          :disabled="!exportDate || isExporting"
-        >
+        <button @click="exportToExcel" class="btn-primary" :disabled="!exportDate || isExporting">
           {{ isExporting ? 'Exporting...' : 'Export' }}
         </button>
-        <button 
-          @click="exportSpecificInvoice" 
-          class="btn-primary"
-          :disabled="!exportInvoiceNumber || isExporting"
-        >
+        <button @click="exportSpecificInvoice" class="btn-primary" :disabled="!exportInvoiceNumber || isExporting">
           {{ isExporting ? 'Exporting...' : 'Export Specific Invoice' }}
         </button>
       </div>
@@ -335,7 +302,7 @@ export default {
         subject: '',
         message: '',
         includePdf: true,
-        includeSummaryPdf: false
+        includeSummaryPdf: true
       },
       exportDate: '',
       exportInvoiceNumber: '',
@@ -348,10 +315,10 @@ export default {
       const current = this.pagination.page;
       const total = this.pagination.pages;
       const delta = 2; // Number of pages to show on each side of current page
-      
+
       let start = Math.max(1, current - delta);
       let end = Math.min(total, current + delta);
-      
+
       // Adjust if we're near the beginning or end
       if (current <= delta) {
         end = Math.min(total, 2 * delta + 1);
@@ -359,7 +326,7 @@ export default {
       if (current > total - delta) {
         start = Math.max(1, total - 2 * delta);
       }
-      
+
       const pages = [];
       for (let i = start; i <= end; i++) {
         pages.push(i);
@@ -403,7 +370,7 @@ export default {
 
         const url = `/invoices${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
         const response = await axios.get(url);
-        
+
         this.invoices = response.data.invoices;
         this.pagination = response.data.pagination;
 
@@ -627,7 +594,7 @@ export default {
             rate: finalRate, // Use the finalRate (either stored or calculated)
             amount: item.amount,
             description: item.description,
-             withBaking: hasBaking,
+            withBaking: hasBaking,
             // Add flag to indicate this is from stored data  
             useStoredRate: !!(item.rate && item.rate > 0)
           };
@@ -1009,20 +976,20 @@ export default {
     async exportToExcel() {
       try {
         this.isExporting = true;
-        
+
         // Fetch invoices for the selected date
         const queryParams = new URLSearchParams();
         queryParams.append('date', this.exportDate);
         queryParams.append('per_page', '1000'); // Get all invoices for the date
-        
+
         const response = await axios.get(`/invoices?${queryParams.toString()}`);
         let invoices = response.data.invoices;
-        
+
         if (invoices.length === 0) {
           alert('No invoices found for the selected date.');
           return;
         }
-        
+
         // Sort invoices by invoice number in ascending order
         invoices = invoices.sort((a, b) => {
           // Extract numeric part from invoice numbers for proper sorting
@@ -1030,26 +997,26 @@ export default {
           const numB = parseInt(b.invoice_number.replace(/\D/g, '')) || 0;
           return numA - numB;
         });
-        
+
         // Process each invoice to get detailed data
         const exportData = [];
-        
+
         for (const invoice of invoices) {
           const [customerData, invoiceDetails] = await Promise.all([
             this.getCustomerById(invoice.customer_id),
             this.getInvoiceDetails(invoice.id)
           ]);
-          
+
           // Map invoice data to Tally format
           const mappedData = this.mapInvoiceToTallyFormat(invoice, customerData, invoiceDetails);
           exportData.push(...mappedData);
         }
-        
+
         // Create Excel file
         this.createExcelFile(exportData);
-        
+
         this.closeExportModal();
-        
+
       } catch (error) {
         console.error('Error exporting to Excel:', error);
         alert('Error exporting invoices. Please try again.');
@@ -1057,7 +1024,7 @@ export default {
         this.isExporting = false;
       }
     },
-    
+
     mapInvoiceToTallyFormat(invoice, customer, invoiceDetails) {
       const exportRows = [];
       const invoiceDate = moment(invoice.invoice_date).format('DD-MM-YYYY');
@@ -1101,7 +1068,7 @@ export default {
         'Bill Name': invoice.invoice_number,
         'Bill Amount': invoice.grand_total
       });
-      
+
       // 2. Individual item sales entries (credits)
       invoiceDetails.items.forEach(item => {
         const challanIds = item.job_ids || '';
@@ -1119,7 +1086,15 @@ export default {
           'Ledger Amount Dr/Cr': 'Cr',
           'Item Allocations - Godown Name': 'Main Location',
           'Item Name': item.description,
-          'Item Description': challanIds,
+          'Item Description': (challanIds.split(',').filter(Boolean).sort((a, b) => {
+            // Try to sort numerically if possible, else lexically
+            const numA = parseInt(a, 10);
+            const numB = parseInt(b, 10);
+            if (!isNaN(numA) && !isNaN(numB)) {
+              return numA - numB;
+            }
+            return a.localeCompare(b);
+          }).join(', ')),
           'Billed Quantity': item.quantity,
           'Item Rate': item.rate,
           'Item Rate per': 'NO',
@@ -1158,7 +1133,7 @@ export default {
           'Bill Amount': ''
         });
       }
-      
+
       // 4. SGST Entry (credit)
       if (invoice.sgst_amount > 0) {
         exportRows.push({
@@ -1183,10 +1158,10 @@ export default {
           'Change Mode': 'Item Invoice',
           'Bill Type of Ref': '',
           'Bill Name': '',
-          'Bill Amount': '' 
+          'Bill Amount': ''
         });
       }
-      
+
       // 5. Round Up entry (if applicable)
       if (Math.abs(roundingAdjustment) > 0.01) {
         exportRows.push({
@@ -1214,17 +1189,17 @@ export default {
           'Bill Amount': ''
         });
       }
-      
+
       return exportRows;
     },
-    
+
     createExcelFile(data) {
       // Create a new workbook
       const wb = XLSX.utils.book_new();
-      
+
       // Create worksheet from data
       const ws = XLSX.utils.json_to_sheet(data);
-      
+
       // Set column widths to match the required format
       const colWidths = [
         { wch: 12 }, // Voucher Date
@@ -1251,14 +1226,14 @@ export default {
         { wch: 15 }  // Bill Amount
       ];
       ws['!cols'] = colWidths;
-      
+
       // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, 'Accounting Vouchers');
-      
+
       // Generate filename with selected date
       const selectedDate = moment(this.exportDate).format('DD_MM_YYYY');
       const fileName = `AccountingVouchers_${selectedDate}.xlsx`;
-      
+
       // Trigger download
       XLSX.writeFile(wb, fileName);
     },
