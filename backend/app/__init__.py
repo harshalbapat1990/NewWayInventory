@@ -13,18 +13,19 @@ jwt = JWTManager()
 migrate = Migrate()
 mail = Mail()
 
+
 def create_app():
     app = Flask(__name__)
-    
+
     # Load configuration
     app.config.from_object(Config)
-    
+
     # Disable SMTP debug output
     import logging
     logging.getLogger('mail.log').setLevel(logging.ERROR)
-    
+
     # Initialize mail with SSL instead of TLS
-    app.config['MAIL_SERVER'] = 'smtp.gmail.com'  
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
     app.config['MAIL_PORT'] = 465
     app.config['MAIL_USE_TLS'] = False
     app.config['MAIL_USE_SSL'] = True
@@ -36,9 +37,9 @@ def create_app():
     # app.config['MAIL_DEFAULT_SENDER'] = 'New Way Typesetters <harshalbapat1990@gmail.com>'
     app.config['MAIL_DEBUG'] = False  # Changed from True to False
     app.config['MAIL_SUPPRESS_SEND'] = False
-    
+
     mail.init_app(app)
-    
+
     db.init_app(app)
     jwt.init_app(app)
     CORS(app, resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}})
@@ -53,6 +54,7 @@ def create_app():
         create_views()
 
     return app
+
 
 def create_views():
     view_queries = [
@@ -128,6 +130,8 @@ def create_views():
                 ps.width,
                 ps.min_quantity,
                 ps.is_dl,
+                ps.prefix,
+                ps.suffix,
                 (COALESCE(p.total_purchased, 0)  -- Get total purchased from PurchaseSummary CTE
                 - COALESCE(wp.total_wasted, 0)   -- Get total wasted from WasteSummary CTE
                 - COALESCE(j.total_used, 0)      -- Get total used from JobSummary CTE

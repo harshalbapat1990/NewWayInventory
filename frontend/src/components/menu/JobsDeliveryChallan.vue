@@ -71,7 +71,7 @@
               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               required>
               <option v-for="size in plateSizes" :key="size.size_id" :value="size.size_id">
-                {{ size.length }} x {{ size.width }}{{ size.is_dl ? ' - DL' : '' }}
+                {{ getSizeDisplay(size) }}
               </option>
             </select>
           </div>
@@ -272,6 +272,7 @@ export default {
       try {
         const response = await axios.get('/plate-summary');
         this.plateSizes = response.data.filter(plate => plate.available_quantity > 0);
+        console.log('Fetched plate sizes:', this.plateSizes);
       } catch (error) {
         console.error('Error fetching plate sizes:', error);
       }
@@ -370,6 +371,13 @@ export default {
     },
     cancelEdit() {
       this.$router.push('/challan-list');
+    },
+    getSizeDisplay(size) {
+      const prefix = size.prefix ? `${size.prefix} ` : '';
+      const base = `${size.length} x ${size.width}`;
+      const dl = size.is_dl ? ' - DL' : '';
+      const suffix = size.suffix ? ` ${size.suffix}` : '';
+      return `${prefix}${base}${dl}${suffix}`.trim();
     },
   },
   mounted() {

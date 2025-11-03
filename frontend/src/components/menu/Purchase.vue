@@ -145,25 +145,34 @@ export default {
           if (size.is_dl) {
             sizeText += ' - DL';
           }
-          return sizeText;
+          const prefix = size.prefix ? `${size.prefix} ` : '';
+          const suffix = size.suffix ? ` ${size.suffix}` : '';
+          return `${prefix}${sizeText}${suffix}`.trim();
         });
 
         if (newSize) {
-            this.sizes.push(`${newSize.length} x ${newSize.width}${newSize.is_dl ? ' - DL' : ''}`);
-            this.selectedSize = `${newSize.length} x ${newSize.width}${newSize.is_dl ? ' - DL' : ''}`;
+            const newSizeText = `${newSize.prefix ? newSize.prefix + ' ' : ''}${newSize.length} x ${newSize.width}${newSize.is_dl ? ' - DL' : ''}${newSize.suffix ? ' ' + newSize.suffix : ''}`;
+            this.sizes.push(newSizeText);
+            this.selectedSize = newSizeText;
         }
       } catch (error) {
         console.error('Error fetching sizes:', error);
       }
     },
     async addPurchase() {
+      // Find selected size by comparing the full display string including prefix/suffix/DL
       const selectedSizeObj = this.sizesData.find(size => {
-        let sizeText = `${size.length} x ${size.width}`;
-        if (size.is_dl) {
-          sizeText += ' - DL';
-        }
-        return sizeText === this.selectedSize;
+        const prefix = size.prefix ? `${size.prefix} ` : '';
+        const suffix = size.suffix ? ` ${size.suffix}` : '';
+        const sizeText = `${prefix}${size.length} x ${size.width}${size.is_dl ? ' - DL' : ''}${suffix}`.trim();
+        return sizeText === (this.selectedSize || '').trim();
       });
+
+      if (!selectedSizeObj) {
+        alert('Please select a valid size.');
+        return;
+      }
+
       const newPurchase = {
         date: this.date,
         size_id: selectedSizeObj.id,
@@ -171,8 +180,10 @@ export default {
       };
 
       try {
-        const response = await axios.post('/purchases', newPurchase);
-        this.purchases.push(response.data);
+        await axios.post('/purchases', newPurchase);
+        // Refresh the purchases table from server to ensure consistency
+        await this.fetchPurchases();
+        // Reset form
         this.quantity = '';
         this.date = new Date().toISOString().split('T')[0];
         this.selectedSize = '';
@@ -180,10 +191,13 @@ export default {
         console.error('Error adding purchase:', error);
       }
     },
+
     async deletePurchase(id) {
+      if (!confirm('Are you sure you want to delete this purchase?')) return;
       try {
         await axios.delete(`/purchases/${id}`);
-        this.purchases = this.purchases.filter(purchase => purchase.id !== id);
+        // Refresh the purchases table from server so UI stays in sync
+        await this.fetchPurchases();
       } catch (error) {
         console.error('Error deleting purchase:', error);
       }
@@ -195,13 +209,15 @@ export default {
     getSizeName(sizeId) {
       const size = this.sizesData.find(size => size.id === sizeId);
       if (!size) {
-      return 'Unknown Size';
+        return 'Unknown Size';
       }
       let sizeText = `${size.length} x ${size.width}`;
       if (size.is_dl) {
-      sizeText += ' - DL';
+        sizeText += ' - DL';
       }
-      return sizeText;
+      const prefix = size.prefix ? `${size.prefix} ` : '';
+      const suffix = size.suffix ? ` ${size.suffix}` : '';
+      return `${prefix}${sizeText}${suffix}`.trim();
     },
   },
   async mounted() {

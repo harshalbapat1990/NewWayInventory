@@ -83,18 +83,23 @@ class Customer(db.Model):
         
 class PlateSize(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    length = db.Column(db.Float, nullable=False)
-    width = db.Column(db.Float, nullable=False)
-    min_quantity = db.Column(db.Integer, nullable=True, default=20)
-    is_dl = db.Column(db.Boolean, nullable=False, default=False)  # New field for DL type
+    length = db.Column(db.Integer, nullable=False)
+    width = db.Column(db.Integer, nullable=False)
+    min_quantity = db.Column(db.Integer, nullable=True)
+    is_dl = db.Column(db.Boolean, default=False)
+    # New columns
+    prefix = db.Column(db.String(50), nullable=True)
+    suffix = db.Column(db.String(50), nullable=True)
 
     def serialize(self):
         return {
-            'id': self.id,
-            'length': self.length,
-            'width': self.width,
-            'min_quantity': self.min_quantity,
-            'is_dl': self.is_dl
+            "id": self.id,
+            "length": self.length,
+            "width": self.width,
+            "min_quantity": self.min_quantity,
+            "is_dl": self.is_dl,
+            "prefix": self.prefix,
+            "suffix": self.suffix
         }
 
 class Purchase(db.Model):

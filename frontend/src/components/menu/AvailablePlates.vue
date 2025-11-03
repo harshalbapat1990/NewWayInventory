@@ -46,7 +46,7 @@
               @click="editingIndex = index"
               class="btn-add"
             >
-              Edit
+              Edit Min Qty
             </button>
           </td>
         </tr>

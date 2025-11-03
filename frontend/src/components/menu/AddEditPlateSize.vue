@@ -41,6 +41,32 @@
       </div>
 
       <div class="col-span-1">
+        <label for="prefix" class="block text-sm font-medium text-gray-700">Prefix</label>
+      </div>
+      <div class="col-span-2">
+        <input
+          type="text"
+          id="prefix"
+          v-model="prefix"
+          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          placeholder="Optional prefix for plate"
+        />
+      </div>
+
+      <div class="col-span-1">
+        <label for="suffix" class="block text-sm font-medium text-gray-700">Suffix</label>
+      </div>
+      <div class="col-span-2">
+        <input
+          type="text"
+          id="suffix"
+          v-model="suffix"
+          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          placeholder="Optional suffix for plate"
+        />
+      </div>
+
+      <div class="col-span-1">
         <label for="is_dl" class="block text-sm font-medium text-gray-700">DL Type</label>
       </div>
       <div class="col-span-2">
@@ -74,6 +100,8 @@
           <th>Length</th>
           <th>Width</th>
           <th>Minimum Quantity</th>
+          <th>Prefix</th>
+          <th>Suffix</th>
           <th>Type</th>
           <th v-if="userRole === 'admin'">Actions</th>
         </tr>
@@ -83,6 +111,8 @@
           <td>{{ plateSize.length }}</td>
           <td>{{ plateSize.width }}</td>
           <td>{{ plateSize.min_quantity || 'N/A' }}</td>
+          <td>{{ plateSize.prefix || '' }}</td>
+          <td>{{ plateSize.suffix || '' }}</td>
           <td>{{ plateSize.is_dl ? 'DL Type' : 'Standard' }}</td>
           <td v-if="userRole === 'admin'">
             <button class="btn-edit" @click="editPlateSize(index)">Edit</button>
@@ -103,11 +133,13 @@ export default {
       length: '',
       width: '',
       min_quantity: 20,
-      is_dl: false,  // Added new data property for DL type
+      is_dl: false,
+      prefix: '',
+      suffix: '',
       plateSizes: [],
       saveButtonText: 'Add',
       plateSizeId: '',
-      userRole: '', // Role of the logged-in user
+      userRole: '',
     };
   },
   methods: {
@@ -134,7 +166,9 @@ export default {
         length: this.length,
         width: this.width,
         min_quantity: this.min_quantity || null,
-        is_dl: this.is_dl  // Include is_dl in the request payload
+        is_dl: this.is_dl,
+        prefix: this.prefix,
+        suffix: this.suffix
       };
 
       try {
@@ -143,23 +177,37 @@ export default {
           const index = this.plateSizes.findIndex(p => p.id === this.plateSizeId);
           if (index !== -1) {
             this.plateSizes.splice(index, 1, response.data);
+          } else {
+            // If not found locally, refresh the list
+            await this.fetchPlateSizes();
           }
         } else {
           const response = await axios.post('/plate-sizes', plateSize);
-          this.plateSizes.push(response.data);
+          // If API returns newly created plate, push it; otherwise refresh
+          if (response && response.data && response.data.id) {
+            this.plateSizes.push(response.data);
+          } else {
+            await this.fetchPlateSizes();
+          }
         }
         this.resetForm();
-        await this.fetchPlateSizes(); // Refresh the plate size list
+        await this.fetchPlateSizes(); // Refresh the plate size list to keep UI consistent
       } catch (error) {
         console.error('Error saving plate size:', error);
       }
     },
     async deletePlateSize(id) {
+      if (!confirm('Are you sure you want to delete this plate size? This action cannot be undone.')) {
+        return;
+      }
       try {
         await axios.delete(`/plate-sizes/${id}`);
-        this.plateSizes = this.plateSizes.filter(plateSize => plateSize.id !== id);
+        // Refresh list after successful delete
+        await this.fetchPlateSizes();
       } catch (error) {
         console.error('Error deleting plate size:', error);
+        const msg = error.response?.data?.message || 'Failed to delete plate size';
+        alert(msg);
       }
     },
     editPlateSize(index) {
@@ -167,9 +215,19 @@ export default {
       this.length = plateSize.length;
       this.width = plateSize.width;
       this.min_quantity = plateSize.min_quantity;
-      this.is_dl = plateSize.is_dl;  // Set the is_dl value when editing
+      this.is_dl = plateSize.is_dl;
+      this.prefix = plateSize.prefix || '';
+      this.suffix = plateSize.suffix || '';
       this.saveButtonText = 'Save';
       this.plateSizeId = plateSize.id;
+
+      // Scroll to top of the form so user can edit immediately
+      this.$nextTick(() => {
+        const form = this.$el.querySelector('form');
+        if (form) {
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
     },
     cancelEdit() {
       this.resetForm();
@@ -178,22 +236,27 @@ export default {
       this.length = '';
       this.width = '';
       this.min_quantity = 20;
-      this.is_dl = false;  // Reset is_dl to false
+      this.is_dl = false;
+      this.prefix = '';
+      this.suffix = '';
       this.saveButtonText = 'Add';
       this.plateSizeId = '';
     },
     isDuplicatePlateSize() {
-      // Check if a plate size with the same dimensions (in any order) and DL condition already exists
+      // When editing, ignore the current plate being edited
       return this.plateSizes.some(
         plate =>
-          ((plate.length === this.length && plate.width === this.width) ||
-          (plate.length === this.width && plate.width === this.length)) &&
+          plate.id !== this.plateSizeId &&
+          (
+            ((plate.length === this.length && plate.width === this.width) ||
+            (plate.length === this.width && plate.width === this.length))
+          ) &&
           plate.is_dl === this.is_dl
       );
     },
   },
   mounted() {
-    this.userRole = this.$store.state.user.role; // Fetch user role from Vuex store
+    this.userRole = this.$store.state.user.role;
     this.fetchPlateSizes();
   },
 };

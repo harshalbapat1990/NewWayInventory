@@ -147,6 +147,8 @@ def register_routes(app):
         length = data['length']
         width = data['width']
         is_dl = data.get('is_dl', False)  # Default to False if not provided
+        prefix = data.get('prefix')  # <-- new
+        suffix = data.get('suffix')  # <-- new
 
         # Check if a plate size with the same dimensions (in any order) and DL condition already exists
         existing_plate = PlateSize.query.filter(
@@ -167,7 +169,9 @@ def register_routes(app):
                 length=length,
                 width=width,
                 min_quantity=data.get('min_quantity', None),
-                is_dl=data.get('is_dl', False)  # Default to False if not provided
+                is_dl=data.get('is_dl', False),
+                prefix=prefix,  # <-- set
+                suffix=suffix   # <-- set
             )
             db.session.add(new_plate_size)
             db.session.commit()
@@ -179,7 +183,9 @@ def register_routes(app):
             plate_size.length = length
             plate_size.width = width
             plate_size.min_quantity = data.get('min_quantity', None)
-            plate_size.is_dl = data.get('is_dl', False)  # Update is_dl field
+            plate_size.is_dl = data.get('is_dl', False)
+            plate_size.prefix = prefix  # <-- update
+            plate_size.suffix = suffix  # <-- update
             db.session.commit()
             return jsonify(plate_size.serialize()), 200
 
@@ -187,18 +193,38 @@ def register_routes(app):
     @role_required(['editor', 'admin'])
     def update_delete_plate_size(id):
         plate_size = PlateSize.query.get_or_404(id)
+
         if request.method == 'PUT':
             data = request.get_json()
-            plate_size.length = data['length']
-            plate_size.width = data['width']
-            plate_size.min_quantity = data['min_quantity']
-            plate_size.is_dl = data.get('is_dl', False)  # Update is_dl field
+            plate_size.length = data.get('length', plate_size.length)
+            plate_size.width = data.get('width', plate_size.width)
+            plate_size.min_quantity = data.get('min_quantity', plate_size.min_quantity)
+            plate_size.is_dl = data.get('is_dl', plate_size.is_dl)
+            plate_size.prefix = data.get('prefix', plate_size.prefix)
+            plate_size.suffix = data.get('suffix', plate_size.suffix)
             db.session.commit()
             return jsonify(plate_size.serialize()), 200
-        elif request.method == 'DELETE':
+
+        if request.method == 'DELETE':
+            # Check references in related tables
+            referenced_messages = []
+
+            if Purchase.query.filter_by(size_id=id).first():
+                referenced_messages.append("purchase records")
+            if Job.query.filter_by(plate_size_id=id).first():
+                referenced_messages.append("delivery challan jobs")
+            if InvoiceItem.query.filter_by(plate_size_id=id).first():
+                referenced_messages.append("invoice items")
+
+            if referenced_messages:
+                # Concatenate messages with ' and ' (no priority)
+                message = "Cannot delete plate size as it is referenced in: " + " and ".join(referenced_messages) + "."
+                return jsonify({"message": message}), 409
+
+            # safe to delete
             db.session.delete(plate_size)
             db.session.commit()
-            return jsonify({"message": "Plate size deleted successfully"}), 200
+            return jsonify({"message": "Plate size deleted"}), 200
 
     @app.route('/api/plate-sizes/<int:size_id>/min-quantity', methods=['PUT'])
     @role_required(['user', 'editor', 'admin'])  # Editor and admin can update or delete plate sizes
@@ -309,11 +335,12 @@ def register_routes(app):
                 "width": row[2],
                 "min_quantity": row[3],
                 "is_dl": row[4],
-                "available_quantity": row[5]
+                "prefix": row[5],        # new
+                "suffix": row[6],        # new
+                "available_quantity": row[7]
             }
             for row in result
         ]
-        # print(plate_summary)  # Debugging: Print the plate summary
         return jsonify(plate_summary), 200
 
     @app.route('/api/purchases', methods=['GET', 'POST'])
