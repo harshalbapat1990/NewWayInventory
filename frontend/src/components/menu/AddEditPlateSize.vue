@@ -243,16 +243,24 @@ export default {
       this.plateSizeId = '';
     },
     isDuplicatePlateSize() {
-      // When editing, ignore the current plate being edited
-      return this.plateSizes.some(
-        plate =>
-          plate.id !== this.plateSizeId &&
-          (
-            ((plate.length === this.length && plate.width === this.width) ||
-            (plate.length === this.width && plate.width === this.length))
-          ) &&
-          plate.is_dl === this.is_dl
-      );
+      // Consider length/width (either order), DL flag, AND prefix+suffix for uniqueness.
+      const newLength = Number(this.length);
+      const newWidth = Number(this.width);
+      const newIsDl = Boolean(this.is_dl);
+      const newPrefix = (this.prefix || '').trim();
+      const newSuffix = (this.suffix || '').trim();
+
+      return this.plateSizes.some(plate => {
+        if (plate.id === this.plateSizeId) return false; // ignore current edit
+        const platePrefix = (plate.prefix || '').trim();
+        const plateSuffix = (plate.suffix || '').trim();
+
+        const dimsMatch =
+          (plate.length === newLength && plate.width === newWidth) ||
+          (plate.length === newWidth && plate.width === newLength);
+
+        return dimsMatch && plate.is_dl === newIsDl && platePrefix === newPrefix && plateSuffix === newSuffix;
+      });
     },
   },
   mounted() {

@@ -19,7 +19,7 @@
           :key="index"
           :class="{ 'low-quantity': plate.available_quantity < plate.min_quantity }"
         >
-          <td>{{ getSizeName(plate.size_id) }}</td>
+          <td class="text-right">{{ getSizeName(plate.size_id) }}</td>
           <td>{{ plate.available_quantity }}</td>
           <td>
             <div v-if="editingIndex === index">
@@ -85,7 +85,12 @@ export default {
     },
     getSizeName(sizeId) {
       const size = this.sizes.find(size => size.id === sizeId);
-      return size ? `${size.length} x ${size.width}${size.is_dl ? ' - DL' : ''}` : '';
+      if (!size) return '';
+      const prefix = size.prefix ? `${size.prefix} ` : '';
+      const base = `${size.length} x ${size.width}`;
+      const dl = size.is_dl ? ' - DL' : '';
+      const suffix = size.suffix ? ` ${size.suffix}` : '';
+      return `${prefix}${base}${dl}${suffix}`.trim();
     },
     async saveMinQuantity(plate) {
       try {

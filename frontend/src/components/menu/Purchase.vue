@@ -142,18 +142,16 @@ export default {
         this.sizesData = response.data;
         this.sizes = response.data.map(size => {
           let sizeText = `${size.length} x ${size.width}`;
-          if (size.is_dl) {
-            sizeText += ' - DL';
-          }
+          if (size.is_dl) sizeText += ' - DL';
           const prefix = size.prefix ? `${size.prefix} ` : '';
           const suffix = size.suffix ? ` ${size.suffix}` : '';
           return `${prefix}${sizeText}${suffix}`.trim();
         });
 
         if (newSize) {
-            const newSizeText = `${newSize.prefix ? newSize.prefix + ' ' : ''}${newSize.length} x ${newSize.width}${newSize.is_dl ? ' - DL' : ''}${newSize.suffix ? ' ' + newSize.suffix : ''}`;
-            this.sizes.push(newSizeText);
-            this.selectedSize = newSizeText;
+          const newSizeText = `${newSize.prefix ? newSize.prefix + ' ' : ''}${newSize.length} x ${newSize.width}${newSize.is_dl ? ' - DL' : ''}${newSize.suffix ? ' ' + newSize.suffix : ''}`;
+          // don't push — server response already contains the new size. just select it.
+          this.selectedSize = newSizeText;
         }
       } catch (error) {
         console.error('Error fetching sizes:', error);

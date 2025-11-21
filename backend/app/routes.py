@@ -153,9 +153,11 @@ def register_routes(app):
         # Check if a plate size with the same dimensions (in any order) and DL condition already exists
         existing_plate = PlateSize.query.filter(
             (
-            ((PlateSize.length == length) & (PlateSize.width == width)) |
-            ((PlateSize.length == width) & (PlateSize.width == length))
-            ) & (PlateSize.is_dl == is_dl)
+              ((PlateSize.length == length) & (PlateSize.width == width)) |
+              ((PlateSize.length == width) & (PlateSize.width == length))
+            ) & (PlateSize.is_dl == is_dl) &
+            ( (PlateSize.prefix == prefix) | ( (PlateSize.prefix.is_(None)) & (prefix is None) ) ) &
+            ( (PlateSize.suffix == suffix) | ( (PlateSize.suffix.is_(None)) & (suffix is None) ) )
         ).first()
 
         if existing_plate:
