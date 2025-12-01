@@ -711,30 +711,29 @@ def register_routes(app):
 
         query = text("""
             SELECT
-            ps.length || ' x ' || ps.width || CASE WHEN ps.is_dl THEN ' - DL' ELSE '' END AS size,
-            SUM(j.quantity * j.colour) AS total_used,
-            DATE(c.date) AS challan_date
-            FROM
-            job j
-            JOIN
-            plate_size ps ON j.plate_size_id = ps.id
-            JOIN
-            challan c ON j.challan_id = c.id
-            WHERE
-            c.date BETWEEN :start_date AND :end_date
-            GROUP BY
-            ps.length, ps.width, ps.is_dl, c.date
-            ORDER BY
-            c.date;
+              ps.id AS size_id,
+              COALESCE(ps.prefix || ' ', '') ||
+              ps.length || ' x ' || ps.width ||
+              CASE WHEN ps.is_dl THEN ' - DL' ELSE '' END ||
+              COALESCE(' ' || ps.suffix, '') AS size_label,
+              SUM(j.quantity * j.colour) AS total_used,
+              DATE(c.date) AS challan_date
+            FROM job j
+            JOIN plate_size ps ON j.plate_size_id = ps.id
+            JOIN challan c ON j.challan_id = c.id
+            WHERE c.date BETWEEN :start_date AND :end_date
+            GROUP BY ps.id, c.date
+            ORDER BY c.date;
         """)
 
         result = db.session.execute(query, {"start_date": start_date, "end_date": end_date}).fetchall()
 
         used_plates = [
             {
-                "item": row[0],
-                "quantity": row[1],
-                "date": row[2]  # No need for isoformat as it's already a string
+                "size_id": row[0],
+                "item": row[1],           # size_label (prefix + "L x W" + DL + suffix)
+                "quantity": row[2],
+                "date": row[3]
             }
             for row in result
         ]

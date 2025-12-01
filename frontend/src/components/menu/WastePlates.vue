@@ -120,23 +120,27 @@ export default {
         const response = await axios.get('/plate-sizes');
         this.sizesData = response.data;
         this.sizes = response.data.map(size => {
-          let sizeText = `${size.length} x ${size.width}`;
-          if (size.is_dl) {
-            sizeText += ' - DL';
-          }
-          return sizeText;
+          const prefix = size.prefix ? `${size.prefix} ` : '';
+          const base = `${size.length} x ${size.width}`;
+          const dl = size.is_dl ? ' - DL' : '';
+          const suffix = size.suffix ? ` ${size.suffix}` : '';
+          return `${prefix}${base}${dl}${suffix}`.trim();
         });
       } catch (error) {
         console.error('Error fetching sizes:', error);
       }
     },
     async fetchAvailablePlates() {
-      const selectedSizeId = this.sizesData.find(size => `${size.length} x ${size.width}${size.is_dl ? ' - DL' : ''}` === this.selectedSize)?.id || '';
+      const selectedSizeId = this.sizesData?.find(size => {
+        const prefix = size.prefix ? `${size.prefix} ` : '';
+        const base = `${size.length} x ${size.width}`;
+        const dl = size.is_dl ? ' - DL' : '';
+        const suffix = size.suffix ? ` ${size.suffix}` : '';
+        return `${prefix}${base}${dl}${suffix}`.trim() === (this.selectedSize || '').trim();
+      })?.id || '';
       try {
         const response = await axios.get('/plate-summary', {
-          params: {
-            size_id: selectedSizeId,
-          },
+          params: { size_id: selectedSizeId },
         });
         this.availablePlates = response.data[0]?.available_quantity || 0;
       } catch (error) {
@@ -144,7 +148,19 @@ export default {
       }
     },
     async addWastePlate() {
-      const selectedSizeObj = this.sizesData.find(size => `${size.length} x ${size.width}${size.is_dl ? ' - DL' : ''}` === this.selectedSize);
+      const selectedSizeObj = this.sizesData?.find(size => {
+        const prefix = size.prefix ? `${size.prefix} ` : '';
+        const base = `${size.length} x ${size.width}`;
+        const dl = size.is_dl ? ' - DL' : '';
+        const suffix = size.suffix ? ` ${size.suffix}` : '';
+        return `${prefix}${base}${dl}${suffix}`.trim() === (this.selectedSize || '').trim();
+      });
+
+      if (!selectedSizeObj) {
+        alert('Please select a valid size.');
+        return;
+      }
+
       const newWastePlate = {
         waste_date: this.date,
         size_id: selectedSizeObj.id,
@@ -152,8 +168,10 @@ export default {
       };
 
       try {
-        const response = await axios.post('/waste-plates', newWastePlate);
-        this.wastePlates.push(response.data);
+        await axios.post('/waste-plates', newWastePlate);
+        // Refresh table from server to ensure fresh data
+        await this.fetchWastePlates();
+        // Reset form
         this.quantity = '';
         this.date = new Date().toISOString().split('T')[0];
         this.selectedSize = '';
@@ -162,10 +180,13 @@ export default {
         console.error('Error adding waste plate:', error);
       }
     },
+
     async deleteWastePlate(id) {
+      if (!confirm('Are you sure you want to delete this waste plate entry?')) return;
       try {
         await axios.delete(`/waste-plates/${id}`);
-        this.wastePlates = this.wastePlates.filter(wastePlate => wastePlate.id !== id);
+        // Refresh table from server so UI stays in sync
+        await this.fetchWastePlates();
       } catch (error) {
         console.error('Error deleting waste plate:', error);
       }
@@ -175,13 +196,13 @@ export default {
       return new Date(date).toLocaleDateString('en-US', options);
     },
     getSizeName(sizeId) {
-      const size = this.sizesData.find(size => size.id === sizeId);
+      const size = this.sizesData?.find(size => size.id === sizeId);
       if (!size) return '';
-      let sizeText = `${size.length} x ${size.width}`;
-      if (size.is_dl) {
-      sizeText += ' - DL';
-      }
-      return sizeText;
+      const prefix = size.prefix ? `${size.prefix} ` : '';
+      const base = `${size.length} x ${size.width}`;
+      const dl = size.is_dl ? ' - DL' : '';
+      const suffix = size.suffix ? ` ${size.suffix}` : '';
+      return `${prefix}${base}${dl}${suffix}`.trim();
     },
   },
   watch: {

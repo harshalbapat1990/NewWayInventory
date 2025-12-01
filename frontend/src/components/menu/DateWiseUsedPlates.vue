@@ -148,26 +148,44 @@ export default {
       return Object.keys(this.errors).length === 0;
     },
     async filterPlates() {
-      if (!this.validateForm()) {
-        return;
-      }
+      if (!this.validateForm()) return;
 
       try {
-        const response = await axios.get('/used-plates', {
+        const res = await axios.get('/used-plates', {
           params: { start_date: this.startDate, end_date: this.endDate },
         });
+        console.log('Fetched used plates:', res.data);
+        const used = res.data || [];
 
-        // Group data by plate size
-        const groupedData = response.data.reduce((acc, plate) => {
-          if (!acc[plate.item]) {
-            acc[plate.item] = 0;
+        const sizesRes = await axios.get('/plate-summary');
+        const sizes = sizesRes.data || [];
+
+        const sizesMap = {};
+        sizes.forEach(s => {
+          const key = String(s.size_id ?? s.id ?? '');
+          if (key) sizesMap[key] = s;
+        });
+
+        const labelled = used.map(p => {
+          let label = p.item || p.name || '';
+          const sizeId = String(p.size_id ?? p.sizeId ?? p.size ?? '');
+          if (sizeId && sizesMap[sizeId]) {
+            const s = sizesMap[sizeId];
+            const prefix = s.prefix ? `${s.prefix} ` : '';
+            const base = `${s.length} x ${s.width}`;
+            const dl = s.is_dl ? ' - DL' : '';
+            const suffix = s.suffix ? ` ${s.suffix}` : '';
+            label = `${prefix}${base}${dl}${suffix}`.trim();
           }
-          acc[plate.item] += plate.quantity;
+          return { ...p, label };
+        });
+
+        const grouped = labelled.reduce((acc, p) => {
+          acc[p.label] = (acc[p.label] || 0) + (p.quantity || 0);
           return acc;
         }, {});
 
-        // Transform grouped data into an array
-        this.plateUsage = Object.entries(groupedData).map(([item, quantity]) => ({ item, quantity }));
+        this.plateUsage = Object.entries(grouped).map(([item, quantity]) => ({ item, quantity }));
       } catch (error) {
         console.error('Error fetching plate usage:', error);
         alert('Failed to fetch data. Please check the console for more details.');
