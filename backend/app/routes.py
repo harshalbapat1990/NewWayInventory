@@ -673,7 +673,7 @@ def register_routes(app):
         try:
             # Get the latest challan code from the database
             latest_challan = Challan.query.order_by(Challan.id.desc()).first()
-            print(f"Latest challan: {latest_challan.challan_code if latest_challan else 'None'}")
+            
             if latest_challan:
                 # Extract number from the latest challan code
                 latest_code = latest_challan.challan_code
