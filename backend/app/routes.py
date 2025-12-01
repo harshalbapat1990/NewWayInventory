@@ -208,25 +208,31 @@ def register_routes(app):
             return jsonify(plate_size.serialize()), 200
 
         if request.method == 'DELETE':
-            # Check references in related tables
-            referenced_messages = []
+            try:
+                referenced_messages = []
 
-            if Purchase.query.filter_by(size_id=id).first():
-                referenced_messages.append("purchase records")
-            if Job.query.filter_by(plate_size_id=id).first():
-                referenced_messages.append("delivery challan jobs")
-            if InvoiceItem.query.filter_by(plate_size_id=id).first():
-                referenced_messages.append("invoice items")
+                if Purchase.query.filter_by(size_id=id).first():
+                    referenced_messages.append("purchase records")
+                if Job.query.filter_by(plate_size_id=id).first():
+                    referenced_messages.append("delivery challan jobs")
+                if InvoiceItem.query.filter_by(plate_size_id=id).first():
+                    referenced_messages.append("invoice items")
+                if CustomerRate.query.filter_by(plate_size_id=id).first():
+                    referenced_messages.append("customer rates")
 
-            if referenced_messages:
-                # Concatenate messages with ' and ' (no priority)
-                message = "Cannot delete plate size as it is referenced in: " + " and ".join(referenced_messages) + "."
-                return jsonify({"message": message}), 409
+                if referenced_messages:
+                    message = "Cannot delete plate size as it is referenced in: " + " and ".join(referenced_messages) + "."
+                    return jsonify({"message": message}), 409
 
-            # safe to delete
-            db.session.delete(plate_size)
-            db.session.commit()
-            return jsonify({"message": "Plate size deleted"}), 200
+                db.session.delete(plate_size)
+                db.session.commit()
+                return jsonify({"message": "Plate size deleted"}), 200
+
+            except Exception as e:
+                print("Error deleting plate size:", e)
+                import traceback
+                print(traceback.format_exc())
+                return jsonify({"message": "Server error deleting plate size"}), 500
 
     @app.route('/api/plate-sizes/<int:size_id>/min-quantity', methods=['PUT'])
     @role_required(['user', 'editor', 'admin'])  # Editor and admin can update or delete plate sizes
@@ -575,7 +581,7 @@ def register_routes(app):
                 query = query.filter(Challan.printed == is_printed)
 
             # Order by challan_code descending
-            query = query.order_by(Challan.challan_code.desc())
+            query = query.order_by(Challan.id.desc())
             
             # Paginate
             pagination = query.paginate(
@@ -667,7 +673,7 @@ def register_routes(app):
         try:
             # Get the latest challan code from the database
             latest_challan = Challan.query.order_by(Challan.id.desc()).first()
-            
+            print(f"Latest challan: {latest_challan.challan_code if latest_challan else 'None'}")
             if latest_challan:
                 # Extract number from the latest challan code
                 latest_code = latest_challan.challan_code
