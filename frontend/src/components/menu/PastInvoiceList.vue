@@ -1073,6 +1073,44 @@ export default {
       // 2. Individual item sales entries (credits)
       invoiceDetails.items.forEach(item => {
         const challanIds = item.job_ids || '';
+        
+        // Helper function to break text into lines with max 11 characters
+        const breakTextAtLength = (text, maxLength = 8) => {
+          if (!text || text.length <= maxLength) return text;
+          
+          const lines = [];
+          let currentLine = '';
+          const items = text.split(', ');
+          
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const isLastItem = i === items.length - 1;
+            const testLine = currentLine ? currentLine + ', ' + item : item;
+            
+            if (testLine.length > maxLength && currentLine) {
+              // Current line would exceed limit, so save it with comma (if not last) and start new line
+              lines.push(currentLine + ', ');
+              currentLine = item;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          // Add the last line without trailing comma
+          if (currentLine) lines.push(currentLine);
+          
+          return lines.join('\n');
+        };
+        
+        const sortedChallanIds = challanIds.split(',').filter(Boolean).sort((a, b) => {
+          // Try to sort numerically if possible, else lexically
+          const numA = parseInt(a, 10);
+          const numB = parseInt(b, 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+          }
+          return a.localeCompare(b);
+        }).join(', ');
+        
         exportRows.push({
           'Voucher Date': invoiceDate,
           'Voucher Type Name': 'Sales',
@@ -1087,15 +1125,7 @@ export default {
           'Ledger Amount Dr/Cr': 'Cr',
           'Item Allocations - Godown Name': 'Main Location',
           'Item Name': item.description,
-          'Item Description': (challanIds.split(',').filter(Boolean).sort((a, b) => {
-            // Try to sort numerically if possible, else lexically
-            const numA = parseInt(a, 10);
-            const numB = parseInt(b, 10);
-            if (!isNaN(numA) && !isNaN(numB)) {
-              return numA - numB;
-            }
-            return a.localeCompare(b);
-          }).join(', ')),
+          'Item Description': breakTextAtLength(sortedChallanIds),
           'Billed Quantity': item.quantity,
           'Item Rate': item.rate,
           'Item Rate per': 'NO',
