@@ -979,18 +979,14 @@ def register_routes(app):
             
         current_fy = f"{str(current_fy_start)[-2:]}{str(current_fy_end)[-2:]}"
         
-        # First try to get the latest invoice from the current financial year
+        # Get the latest invoice from the current financial year only
         latest_invoice = Invoice.query.filter_by(financial_year=current_fy).order_by(Invoice.invoice_sequence.desc()).first()
-        
-        # If no invoice found for current FY, get the latest from any FY
-        if not latest_invoice:
-            latest_invoice = Invoice.query.order_by(
-                Invoice.financial_year.desc(),
-                Invoice.invoice_sequence.desc()
-            ).first()
         
         if latest_invoice:
             return jsonify(latest_invoice.serialize()), 200
+        
+        # No invoices for current FY — return current FY with sequence 0
+        # (this handles new FY start, e.g. April 1st rollover from 2526 -> 2627)
         return jsonify({
             "financial_year": current_fy,
             "invoice_sequence": 0,

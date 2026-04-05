@@ -679,34 +679,23 @@ export default {
         if (response.data && response.status === 200) {
           const latestInvoice = response.data;
           
-          // Check if we have financial year and sequence information
-          let financialYear = '';
+          // Always compute the actual current financial year from the client's date
+          const today = new Date();
+          const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+          const fyEnd = fyStart + 1;
+          const currentFY = `${String(fyStart).slice(-2)}${String(fyEnd).slice(-2)}`;
+
+          let financialYear = currentFY;
           let sequenceNumber = 1;
-          
-          if (latestInvoice.financial_year) {
-            // Use the financial year from the API response
-            financialYear = latestInvoice.financial_year;
-            
-            // Increment the sequence number
+
+          if (latestInvoice.financial_year && latestInvoice.financial_year === currentFY) {
+            // API returned an invoice from the current financial year — continue its sequence
             sequenceNumber = (latestInvoice.invoice_sequence || 0) + 1;
             this.latestSequenceNumber = latestInvoice.invoice_sequence || 0;
           } else {
-            // Determine the current financial year manually if not provided
-            const today = new Date();
-            let financialYearStart, financialYearEnd;
-            
-            // If current month is April or later, financial year is current year to next year
-            // Otherwise it's previous year to current year
-            if (today.getMonth() >= 3) { // 3 is April (0-indexed months)
-              financialYearStart = today.getFullYear();
-              financialYearEnd = today.getFullYear() + 1;
-            } else {
-              financialYearStart = today.getFullYear() - 1;
-              financialYearEnd = today.getFullYear();
-            }
-            
-            // Use the last two digits of each year
-            financialYear = `${String(financialYearStart).slice(-2)}${String(financialYearEnd).slice(-2)}`;
+            // API returned an invoice from an old financial year — new FY resets to 1
+            sequenceNumber = 1;
+            this.latestSequenceNumber = 0;
           }
           
           // Store the prefix and sequence separately for display
@@ -716,9 +705,9 @@ export default {
         } else {
           // Fallback if response is invalid
           const today = new Date();
-          const year = today.getFullYear();
-          const nextYear = today.getFullYear() + 1;
-          const financialYear = `${year.toString().slice(-2)}${nextYear.toString().slice(-2)}`;
+          const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+          const fyEnd = fyStart + 1;
+          const financialYear = `${String(fyStart).slice(-2)}${String(fyEnd).slice(-2)}`;
           this.currentFinancialYear = financialYear;
           this.invoicePrefix = `${financialYear}/GST/`;
           this.invoiceSequence = "01";
@@ -727,9 +716,9 @@ export default {
         console.error('Error generating invoice number:', error);
         // Fallback to a default format if there's an error
         const today = new Date();
-        const year = today.getFullYear();
-        const nextYear = today.getFullYear() + 1;
-        const financialYear = `${year.toString().slice(-2)}${nextYear.toString().slice(-2)}`;
+        const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+        const fyEnd = fyStart + 1;
+        const financialYear = `${String(fyStart).slice(-2)}${String(fyEnd).slice(-2)}`;
         this.currentFinancialYear = financialYear;
         this.invoicePrefix = `${financialYear}/GST/`;
         this.invoiceSequence = "01";
