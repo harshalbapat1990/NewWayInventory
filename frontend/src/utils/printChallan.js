@@ -77,7 +77,9 @@ export function printChallan(challan, customer, plateSizes) {
     doc.text('DC:', margin, y);
     doc.setFontSize(fontSizeDetailsValue);
     doc.setFont(fontBold, 'bold');
-    const challanCodeFormatted = challan.challan_code.split('-')[1] || challan.challan_code;
+    const challanCodeFormatted = challan.challan_sequence
+      ? String(challan.challan_sequence)
+      : (challan.challan_code.split('/').pop() || challan.challan_code.split('-')[1] || challan.challan_code);
     doc.text(challanCodeFormatted, margin + 8, y);
 
     doc.setFontSize(fontSizeDetailsLabel);

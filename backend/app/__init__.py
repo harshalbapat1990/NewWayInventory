@@ -50,6 +50,7 @@ def create_app():
         routes.register_routes(app)
         from .models import User, Item, Customer, PlateSize, WastePlate, Job, Plate, UsedPlate
         db.create_all()
+        run_migrations(db)
         User.create_default_users()
         create_views()
 
@@ -100,20 +101,20 @@ def create_views():
         text("""
             CREATE VIEW plate_summary_view AS
             WITH PurchaseSummary AS (
-                -- Calculate total purchased for ALL size_ids
+                -- Calculate total purchased for ALL size_ids (all FYs, stock is perpetual/cumulative)
                 SELECT
                     size_id,
                     SUM(quantity) AS total_purchased
                 FROM purchase
-                GROUP BY size_id -- Group by size_id to get sums for each
+                GROUP BY size_id
             ),
             WasteSummary AS (
-                -- Calculate total wasted for ALL size_ids
+                -- Calculate total wasted for ALL size_ids (all FYs, stock is perpetual/cumulative)
                 SELECT
                     size_id,
                     SUM(quantity_wasted) AS total_wasted
                 FROM waste_plate
-                GROUP BY size_id -- Group by size_id to get sums for each
+                GROUP BY size_id
             ),
             JobSummary AS (
                 -- Calculate total used in jobs for ALL plate_size_ids
@@ -152,3 +153,109 @@ def create_views():
     for query in view_queries:
         db.session.execute(query)
     db.session.commit()
+
+
+def run_migrations(db):
+    """Add new columns to existing tables if they don't already exist, then backfill data."""
+    from sqlalchemy import inspect, text as sa_text
+    inspector = inspect(db.engine)
+
+    def column_exists(table, col):
+        return any(c['name'] == col for c in inspector.get_columns(table))
+
+    migrations = []
+
+    # challan table
+    if not column_exists('challan', 'financial_year'):
+        migrations.append("ALTER TABLE challan ADD COLUMN financial_year VARCHAR(4)")
+    if not column_exists('challan', 'challan_sequence'):
+        migrations.append("ALTER TABLE challan ADD COLUMN challan_sequence INTEGER")
+    if not column_exists('challan', 'is_archived'):
+        migrations.append("ALTER TABLE challan ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0")
+
+    # invoice table
+    if not column_exists('invoice', 'is_archived'):
+        migrations.append("ALTER TABLE invoice ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0")
+
+    # purchase table
+    if not column_exists('purchase', 'is_archived'):
+        migrations.append("ALTER TABLE purchase ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0")
+
+    # waste_plate table
+    if not column_exists('waste_plate', 'is_archived'):
+        migrations.append("ALTER TABLE waste_plate ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0")
+
+    for sql in migrations:
+        db.session.execute(sa_text(sql))
+    if migrations:
+        db.session.commit()
+
+    # Backfill challans that have no financial_year yet
+    # Derive FY from challan date and sequence from the old "DC-<number>" code
+    rows = db.session.execute(sa_text(
+        "SELECT id, challan_code, date FROM challan WHERE financial_year IS NULL"
+    )).fetchall()
+
+    if rows:
+        for row in rows:
+            challan_id, code, date_str = row[0], row[1], row[2]
+            # Parse date
+            try:
+                if isinstance(date_str, str):
+                    from datetime import date as date_type
+                    d = date_type.fromisoformat(date_str[:10])
+                else:
+                    d = date_str
+                fy_start = d.year if d.month >= 4 else d.year - 1
+                fy = f"{str(fy_start)[-2:]}{str(fy_start + 1)[-2:]}"
+            except Exception:
+                fy = "2526"
+
+            # Parse sequence from "DC-<num>" or pure numeric
+            try:
+                if '-' in code:
+                    seq = int(code.split('-')[-1])
+                else:
+                    seq = int(code)
+            except (ValueError, IndexError):
+                seq = 0
+
+            # Rewrite challan_code to new format "<FY>/DC/<seq>"
+            new_code = f"{fy}/DC/{seq}"
+            # Handle duplicate new_code by appending id if needed
+            existing = db.session.execute(
+                sa_text("SELECT id FROM challan WHERE challan_code = :code AND id != :cid"),
+                {"code": new_code, "cid": challan_id}
+            ).fetchone()
+            if existing:
+                new_code = f"{fy}/DC/{seq}-{challan_id}"
+
+            db.session.execute(
+                sa_text("UPDATE challan SET financial_year=:fy, challan_sequence=:seq, challan_code=:code WHERE id=:cid"),
+                {"fy": fy, "seq": seq, "code": new_code, "cid": challan_id}
+            )
+        db.session.commit()
+
+    # Renumber challan sequences per FY so each FY starts from 1 (sorted by date, then id).
+    # This fixes cases where old global DC-numbers were carried over as sequences during backfill.
+    # Idempotent: skips any FY whose MIN(challan_sequence) is already 1.
+    fy_mins = db.session.execute(sa_text(
+        "SELECT financial_year, MIN(challan_sequence) FROM challan "
+        "WHERE financial_year IS NOT NULL GROUP BY financial_year"
+    )).fetchall()
+
+    needs_renumber = [fy for fy, min_seq in fy_mins if min_seq is None or min_seq != 1]
+
+    for fy in needs_renumber:
+        challans = db.session.execute(sa_text(
+            "SELECT id FROM challan WHERE financial_year = :fy ORDER BY date ASC, id ASC"
+        ), {"fy": fy}).fetchall()
+
+        for new_seq, (challan_id,) in enumerate(challans, start=1):
+            new_code = f"{fy}/DC/{new_seq}"
+            db.session.execute(sa_text(
+                "UPDATE challan SET challan_sequence=:seq, challan_code=:code WHERE id=:cid"
+            ), {"seq": new_seq, "code": new_code, "cid": challan_id})
+
+    if needs_renumber:
+        db.session.commit()

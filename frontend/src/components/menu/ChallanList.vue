@@ -34,6 +34,20 @@
           <option value="false">Not Printed</option>
         </select>
       </div>
+      <div>
+        <label for="financialYear" class="block text-sm font-medium text-gray-700">Financial Year</label>
+        <select id="financialYear" v-model="filters.financialYear"
+          class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+          <option value="">All Years</option>
+          <option v-for="fy in availableFinancialYears" :key="fy" :value="fy">{{ fyLabel(fy) }}</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+          <input type="checkbox" v-model="filters.showArchived" class="rounded" />
+          Show Archived
+        </label>
+      </div>
       <div class="ml-auto flex gap-2">
         <button @click="applyFilters" class="btn-primary">
           Apply Filters
@@ -75,8 +89,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="challan in challans" :key="challan.id" :class="{'bg-gray-100': challan.printed}">
-            <td class="border border-gray-300 px-4 py-2 w-1/10">{{ challan.challan_code }}</td>
+          <tr v-for="challan in challans" :key="challan.id" :class="{'bg-gray-100': challan.printed, 'bg-orange-50': challan.is_archived}">
+            <td class="border border-gray-300 px-4 py-2 w-1/10">
+              {{ challan.challan_sequence || challan.challan_code }}
+              <span v-if="challan.is_archived" class="ml-1 text-xs text-orange-600 font-semibold">[Archived]</span>
+            </td>
             <td class="border border-gray-300 px-4 py-2 w-1/10">{{ formatDate(challan.date) }}</td>
             <td class="border border-gray-300 px-4 py-2 w-3/20">{{ getCustomerName(challan.customer_id) }}</td>
             <td class="border border-gray-300 px-4 py-2 w-1/10">
@@ -170,11 +187,14 @@ export default {
       challans: [],
       customers: [],
       plateSizes: [],
+      availableFinancialYears: [],
       filters: {
         challanCode: '',
         date: '',
         customerId: '',
-        printed: ''
+        printed: '',
+        financialYear: '',
+        showArchived: false
       },
       pagination: {
         page: 1,
@@ -228,6 +248,8 @@ export default {
         if (this.filters.date) queryParams.append('date', this.filters.date);
         if (this.filters.customerId) queryParams.append('customer_id', this.filters.customerId);
         if (this.filters.printed !== '') queryParams.append('printed', this.filters.printed);
+        if (this.filters.financialYear) queryParams.append('financial_year', this.filters.financialYear);
+        queryParams.append('archived', this.filters.showArchived ? 'true' : 'false');
         
         const url = `/challans${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
         const response = await axios.get(url);
@@ -277,7 +299,9 @@ export default {
         challanCode: '',
         date: '',
         customerId: '',
-        printed: ''
+        printed: '',
+        financialYear: '',
+        showArchived: false
       };
       // Reset to page 1 when clearing filters
       this.fetchChallans(1);
@@ -319,12 +343,33 @@ export default {
         }
       }
     },
+    async fetchAvailableFinancialYears() {
+      try {
+        // Gather all unique FYs from both active and archived challans
+        const [activeResp, archivedResp] = await Promise.all([
+          axios.get('/challans', { params: { per_page: 1000, archived: 'false' } }),
+          axios.get('/challans', { params: { per_page: 1000, archived: 'true' } })
+        ]);
+        const years = new Set();
+        [...(activeResp.data.challans || []), ...(archivedResp.data.challans || [])].forEach(c => {
+          if (c.financial_year) years.add(c.financial_year);
+        });
+        this.availableFinancialYears = Array.from(years).sort().reverse();
+      } catch (e) {
+        console.error('Error fetching financial years:', e);
+      }
+    },
+    fyLabel(fy) {
+      if (!fy || fy.length !== 4) return fy;
+      return `20${fy.slice(0, 2)}-${fy.slice(2)}`;
+    },
   },
   mounted() {
     this.userRole = this.$store?.state?.user?.role || 'admin';
     this.fetchChallans();
     this.fetchCustomers();
     this.fetchPlateSizes();
+    this.fetchAvailableFinancialYears();
   },
 };
 </script>

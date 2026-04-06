@@ -24,6 +24,7 @@ import ChallanList from '../components/menu/ChallanList.vue';
 import AddEditPlateSize from '../components/menu/AddEditPlateSize.vue';
 import CustomerRate from '../components/menu/CustomerRate.vue';
 import PastInvoiceList from '../components/menu/PastInvoiceList.vue';
+import ArchiveManager from '../components/menu/ArchiveManager.vue';
 
 const routes = [
   { path: '/', component: LandingPage },
@@ -49,8 +50,8 @@ const routes = [
   { path: '/challan-list', component: ChallanList, meta: { requiresAuth: true } },
   { path: '/add-edit-plate-sizes', name: 'AddEditPlateSize', component: AddEditPlateSize },
   { path: '/customer-rate', component: CustomerRate, meta: { requiresAuth: true } },
-  { path: '/past-invoices', component: PastInvoiceList, meta: { requiresAuth: true } }
-  
+  { path: '/past-invoices', component: PastInvoiceList, meta: { requiresAuth: true } },
+  { path: '/archive-manager', component: ArchiveManager, meta: { requiresAuth: true } }
 ];
 
 const router = createRouter({

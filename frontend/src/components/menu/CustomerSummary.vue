@@ -432,7 +432,8 @@ export default {
             customer_id: this.selectedCustomerId,
             start_date: this.startDate,
             end_date: this.endDate,
-            per_page: 1000 // Get all results for summary
+            per_page: 1000, // Get all results for summary
+            archived: 'all' // Include archived challans — needed for cross-FY invoicing
           },
         });
         
@@ -465,15 +466,17 @@ export default {
               colourGroup = { colour: job.colour, challans: [] };
               plateGroup.colours.push(colourGroup);
             }
-            const challanCodeFormatted = challan.challan_code.split('-')[1] || challan.challan_code;
+            const challanCodeFormatted = challan.challan_sequence
+              ? String(challan.challan_sequence)
+              : (challan.challan_code.split('/').pop() || challan.challan_code.split('-')[1] || challan.challan_code);
 
-            let challanGroup = colourGroup.challans.find(group => 
-                  group.challan_no === (challan.challan_code.split('-')[1] || challan.challan_code)
+            let challanGroup = colourGroup.challans.find(group =>
+                  group.challan_no === challanCodeFormatted
                 );
                 if (!challanGroup) {
-                  challanGroup = { 
-                    challan_no: challan.challan_code.split('-')[1] || challan.challan_code, 
-                    jobs: [] 
+                  challanGroup = {
+                    challan_no: challanCodeFormatted,
+                    jobs: []
                   };
                   colourGroup.challans.push(challanGroup);
                 }
@@ -949,7 +952,8 @@ export default {
                 customer_id: customer.id,
                 start_date: this.bulkInvoiceStartDate,
                 end_date: this.bulkInvoiceEndDate,
-                per_page: 1000 // Get all results for summary
+                per_page: 1000, // Get all results for summary
+                archived: 'all' // Include archived challans — needed for cross-FY invoicing
               },
             });
 
@@ -994,13 +998,17 @@ export default {
                   plateGroup.colours.push(colourGroup);
                 }
 
-                let challanGroup = colourGroup.challans.find(group => 
-                  group.challan_no === (challan.challan_code.split('-')[1] || challan.challan_code)
+                let challanGroup = colourGroup.challans.find(group =>
+                  group.challan_no === (challan.challan_sequence
+                    ? String(challan.challan_sequence)
+                    : (challan.challan_code.split('/').pop() || challan.challan_code.split('-')[1] || challan.challan_code))
                 );
                 if (!challanGroup) {
-                  challanGroup = { 
-                    challan_no: challan.challan_code.split('-')[1] || challan.challan_code, 
-                    jobs: [] 
+                  challanGroup = {
+                    challan_no: challan.challan_sequence
+                      ? String(challan.challan_sequence)
+                      : (challan.challan_code.split('/').pop() || challan.challan_code.split('-')[1] || challan.challan_code),
+                    jobs: []
                   };
                   colourGroup.challans.push(challanGroup);
                 }

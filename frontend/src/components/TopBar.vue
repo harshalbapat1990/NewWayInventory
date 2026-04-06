@@ -60,6 +60,7 @@ export default {
         { title: 'Add/Edit Customer', route: '/add-edit-customer' },
         { title: 'Add/Edit Plate Sizes', route: '/add-edit-plate-sizes' }, // New menu item
         { title: 'Add/Edit Customer Rate', route: '/customer-rate', roles: ['accountant'] }, // New menu item with roles
+        { title: 'Archive Manager', route: '/archive-manager', roles: ['admin'] },
       ],
       jobsMenuItems: [
         { title: 'New Delivery Challan', route: '/jobs-delivery-challan' },

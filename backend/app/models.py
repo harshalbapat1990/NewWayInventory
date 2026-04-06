@@ -107,13 +107,15 @@ class Purchase(db.Model):
     date = db.Column(db.Date, nullable=False)
     size_id = db.Column(db.Integer, db.ForeignKey('plate_size.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
 
     def serialize(self):
         return {
             'id': self.id,
             'date': self.date.isoformat(),
             'size_id': self.size_id,
-            'quantity': self.quantity
+            'quantity': self.quantity,
+            'is_archived': self.is_archived
         }
     
 class WastePlate(db.Model):
@@ -121,13 +123,15 @@ class WastePlate(db.Model):
     size_id = db.Column(db.Integer, db.ForeignKey('plate_size.id'), nullable=False)
     quantity_wasted = db.Column(db.Integer, nullable=False)
     waste_date = db.Column(db.Date, nullable=False)
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
 
     def serialize(self):
         return {
             'id': self.id,
             'size_id': self.size_id,
             'quantity_wasted': self.quantity_wasted,
-            'waste_date': self.waste_date
+            'waste_date': self.waste_date,
+            'is_archived': self.is_archived
         }
 
 class Job(db.Model):
@@ -181,6 +185,9 @@ class UsedPlate(db.Model):
 class Challan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     challan_code = db.Column(db.String(100), unique=True, nullable=False)
+    financial_year = db.Column(db.String(4), nullable=True)   # e.g. "2627" for 2026-27
+    challan_sequence = db.Column(db.Integer, nullable=True)   # e.g. 1, 2, 3 within the FY
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
     date = db.Column(db.Date, nullable=False)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'), nullable=False)
     special_instructions = db.Column(db.Text, nullable=True)  # New field for special instructions
@@ -191,6 +198,9 @@ class Challan(db.Model):
         return {
             'id': self.id,
             'challan_code': self.challan_code,
+            'financial_year': self.financial_year,
+            'challan_sequence': self.challan_sequence,
+            'is_archived': self.is_archived,
             'date': self.date.isoformat(),
             'customer_id': self.customer_id,
             'special_instructions': self.special_instructions,  # Include in serialization
@@ -236,7 +246,8 @@ class Invoice(db.Model):
     sgst_amount = db.Column(db.Float, nullable=False, default=0.0)
     igst_amount = db.Column(db.Float, nullable=False, default=0.0)
     grand_total = db.Column(db.Float, nullable=False, default=0.0)
-    challan_references = db.Column(db.String(200), nullable=True) 
+    challan_references = db.Column(db.String(200), nullable=True)
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
     status = db.Column(db.String(20), default='unpaid')  # unpaid, paid, cancelled
     payment_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
@@ -263,6 +274,7 @@ class Invoice(db.Model):
             'igst_amount': self.igst_amount,
             'grand_total': self.grand_total,
             'challan_references': self.challan_references,
+            'is_archived': self.is_archived,
             'status': self.status,
             'payment_date': self.payment_date.isoformat() if self.payment_date else None,
             'created_at': self.created_at.isoformat(),
