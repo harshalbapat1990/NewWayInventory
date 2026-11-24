@@ -29,13 +29,12 @@ def create_app():
     app.config['MAIL_PORT'] = 465
     app.config['MAIL_USE_TLS'] = False
     app.config['MAIL_USE_SSL'] = True
+    # app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+    # app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_USERNAME'] = 'newwayaccounts@gmail.com'
-    app.config['MAIL_PASSWORD'] = 'gbrwmcfqnwequheu'
+    app.config['MAIL_PASSWORD'] = 'edwopaqxkliosrjn'
     app.config['MAIL_DEFAULT_SENDER'] = 'New Way Typesetters <newwayaccounts@gmail.com>'
-    # app.config['MAIL_USERNAME'] = 'harshalbapat1990@gmail.com'
-    # app.config['MAIL_PASSWORD'] = 'uiojnavqzeabtyyw'
-    # app.config['MAIL_DEFAULT_SENDER'] = 'New Way Typesetters <harshalbapat1990@gmail.com>'
-    app.config['MAIL_DEBUG'] = False  # Changed from True to False
+    app.config['MAIL_DEBUG'] = False
     app.config['MAIL_SUPPRESS_SEND'] = False
 
     mail.init_app(app)
@@ -172,6 +171,10 @@ def run_migrations(db):
         migrations.append("ALTER TABLE challan ADD COLUMN challan_sequence INTEGER")
     if not column_exists('challan', 'is_archived'):
         migrations.append("ALTER TABLE challan ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0")
+
+    # customer table
+    if not column_exists('customer', 'is_archived'):
+        migrations.append("ALTER TABLE customer ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT 0")
 
     # invoice table
     if not column_exists('invoice', 'is_archived'):

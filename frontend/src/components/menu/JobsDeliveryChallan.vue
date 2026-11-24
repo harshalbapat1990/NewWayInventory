@@ -27,7 +27,7 @@
               class="mt-1 w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
               required>
               <option v-for="customer in customers" :key="customer.id" :value="customer.id">
-                {{ customer.company_name }}
+                {{ customer.company_name }}{{ customer.is_archived ? ' (Archived)' : '' }}
               </option>
             </select>
           </div>
@@ -297,13 +297,27 @@ export default {
     async fetchCustomers() {
       try {
         const response = await axios.get('/customers');
-        this.customers = response.data;
+        const previouslyLoadedArchived = this.customers.filter(customer => customer.is_archived);
+        const activeIds = new Set(response.data.map(customer => customer.id));
+        this.customers = [
+          ...response.data,
+          ...previouslyLoadedArchived.filter(customer => !activeIds.has(customer.id)),
+        ];
       } catch (error) {
         console.error('Error fetching customers:', error);
       }
     },
     async fetchCustomerDetails() {
-      const customer = this.customers.find(c => c.id === this.selectedCustomerId);
+      let customer = this.customers.find(c => c.id === this.selectedCustomerId);
+      if (!customer && this.selectedCustomerId) {
+        try {
+          const response = await axios.get(`/customers/${this.selectedCustomerId}`);
+          customer = response.data;
+          this.customers.push(customer);
+        } catch (error) {
+          console.error('Error fetching customer details:', error);
+        }
+      }
       if (customer) {
         this.customerDetails = {
           address: customer.address,
@@ -332,7 +346,7 @@ export default {
         this.selectedCustomerId = challan.customer_id;
 
         // Fetch customer details after setting selectedCustomerId
-        this.fetchCustomerDetails();
+        await this.fetchCustomerDetails();
 
         this.jobs = challan.jobs.map(job => ({
           job_name: job.job_name,

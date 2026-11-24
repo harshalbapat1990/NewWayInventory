@@ -50,7 +50,7 @@ export default {
     },
     async fetchCustomers() {
       try {
-        const response = await axios.get('/customers');
+        const response = await axios.get('/customers?include_archived=true');
         this.customers = response.data;
       } catch (error) {
         console.error('Error fetching customers:', error);

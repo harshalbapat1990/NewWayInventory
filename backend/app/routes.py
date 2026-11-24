@@ -107,9 +107,33 @@ def register_routes(app):
             db.session.commit()
             return jsonify(new_customer.serialize()), 201
 
-        # Debugging: Print the query results
-        customers = Customer.query.all()
+        include_archived = request.args.get('include_archived', 'false').lower() == 'true'
+        query = Customer.query
+        if not include_archived:
+            query = query.filter_by(is_archived=False)
+        customers = query.order_by(Customer.company_name.asc()).all()
         return jsonify([customer.serialize() for customer in customers]), 200
+
+    @app.route('/api/customers/<int:id>', methods=['GET'])
+    @role_required(['user', 'editor', 'admin', 'accountant'])
+    def get_customer(id):
+        return jsonify(Customer.query.get_or_404(id).serialize()), 200
+
+    @app.route('/api/customers/<int:id>/archive', methods=['PATCH'])
+    @role_required(['editor', 'admin', 'accountant'])
+    def archive_customer(id):
+        customer = Customer.query.get_or_404(id)
+        customer.is_archived = True
+        db.session.commit()
+        return jsonify(customer.serialize()), 200
+
+    @app.route('/api/customers/<int:id>/restore', methods=['PATCH'])
+    @role_required(['editor', 'admin', 'accountant'])
+    def restore_customer(id):
+        customer = Customer.query.get_or_404(id)
+        customer.is_archived = False
+        db.session.commit()
+        return jsonify(customer.serialize()), 200
 
     @app.route('/api/customers/<int:id>', methods=['PUT', 'DELETE'])
     @role_required(['editor', 'admin', 'accountant'])  # Editor, admin, and accountant can update or delete customers
@@ -518,6 +542,9 @@ def register_routes(app):
     def manage_challans():
         if request.method == 'POST':
             data = request.get_json()
+            customer = Customer.query.get_or_404(data.get('customer_id'))
+            if customer.is_archived:
+                return jsonify({"message": "Archived clients cannot be assigned to new challans."}), 400
             challan_code = data['challan_code']
 
             # Parse financial_year and challan_sequence from code format "FFFF/DC/N"
@@ -665,6 +692,9 @@ def register_routes(app):
 
         if request.method == 'PUT':
             data = request.get_json()
+            selected_customer = Customer.query.get_or_404(data.get('customer_id'))
+            if selected_customer.is_archived and selected_customer.id != challan.customer_id:
+                return jsonify({"message": "Archived clients cannot be newly assigned to a challan."}), 400
             challan.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
             challan.customer_id = data['customer_id']
             challan.special_instructions = data.get('special_instructions', '')  # Update special instructions
@@ -764,6 +794,9 @@ def register_routes(app):
     def manage_invoices():
         if request.method == 'POST':
             data = request.get_json()
+            customer = Customer.query.get_or_404(data.get('customer_id'))
+            if customer.is_archived:
+                return jsonify({"message": "Archived clients cannot be assigned to new invoices."}), 400
             
             # Check if invoice number already exists
             existing_invoice = Invoice.query.filter_by(invoice_number=data['invoice_number']).first()
@@ -896,6 +929,9 @@ def register_routes(app):
         
         if request.method == 'PUT':
             data = request.get_json()
+            selected_customer = Customer.query.get_or_404(data.get('customer_id', invoice.customer_id))
+            if selected_customer.is_archived and selected_customer.id != invoice.customer_id:
+                return jsonify({"message": "Archived clients cannot be newly assigned to an invoice."}), 400
             
             # Update invoice details
             invoice.invoice_date = datetime.strptime(data['invoice_date'], '%Y-%m-%d').date()

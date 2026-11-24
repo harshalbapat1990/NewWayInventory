@@ -21,7 +21,7 @@
           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
           <option value="">All Customers</option>
           <option v-for="customer in customers" :key="customer.id" :value="customer.id">
-            {{ customer.company_name }}
+            {{ customer.company_name }}{{ customer.is_archived ? ' (Archived)' : '' }}
           </option>
         </select>
       </div>
@@ -269,7 +269,7 @@ export default {
     },
     async fetchCustomers() {
       try {
-        const response = await axios.get('/customers');
+        const response = await axios.get('/customers?include_archived=true');
         this.customers = response.data;
       } catch (error) {
         console.error('Error fetching customers:', error);

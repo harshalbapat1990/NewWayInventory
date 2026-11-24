@@ -10,7 +10,7 @@
           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           required>
           <option v-for="customer in customers" :key="customer.id" :value="customer.id">
-            {{ customer.company_name }}
+            {{ customer.company_name }}{{ customer.is_archived ? ' (Archived)' : '' }}
           </option>
         </select>
       </div>
@@ -233,7 +233,7 @@
           </div>
           <div class="border border-gray-200 rounded max-h-60 overflow-y-auto p-2">
             <div 
-              v-for="customer in customers" 
+              v-for="customer in activeCustomers"
               :key="customer.id"
               class="flex items-center p-2 hover:bg-gray-50"
             >
@@ -354,6 +354,7 @@ export default {
 
     return {
       customers: [], // List of customers
+      activeCustomers: [], // Clients eligible for new invoices
       plateSizes: [], // List of plate sizes
       selectedCustomerId: '', // Selected customer ID
       startDate: oneMonthAgo.toISOString().split('T')[0], // Default to 1 month ago
@@ -401,8 +402,9 @@ export default {
   methods: {
     async fetchCustomers() {
       try {
-        const response = await axios.get('/customers');
+        const response = await axios.get('/customers?include_archived=true');
         this.customers = response.data.sort((a, b) => a.company_name.localeCompare(b.company_name));
+        this.activeCustomers = this.customers.filter(customer => !customer.is_archived);
       } catch (error) {
         console.error('Error fetching customers:', error);
       }
@@ -506,6 +508,10 @@ export default {
       printCustomerSummary(this.groupedChallans, customerName, this.startDate, this.endDate);
     },
     async printTaxInvoice() {
+      if (this.customers.find(customer => customer.id === this.selectedCustomerId)?.is_archived) {
+        alert('Restore this client before creating a new invoice.');
+        return;
+      }
       if (!this.groupedChallans.length) {
         alert('No data available to generate tax invoice.');
         return;
@@ -928,7 +934,7 @@ export default {
         let currentSequence = parseInt(this.invoiceSequence, 10);
 
         // Filter customers based on selection
-        const selectedCustomers = this.customers.filter(customer => 
+        const selectedCustomers = this.activeCustomers.filter(customer =>
           this.selectedCustomersForBulk.includes(customer.id)
         );
 
@@ -1216,7 +1222,7 @@ export default {
       }
     },
     selectAllCustomers() {
-      this.selectedCustomersForBulk = this.customers.map(customer => customer.id);
+      this.selectedCustomersForBulk = this.activeCustomers.map(customer => customer.id);
     },
 
     deselectAllCustomers() {

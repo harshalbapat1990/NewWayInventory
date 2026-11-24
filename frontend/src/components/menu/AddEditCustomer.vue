@@ -149,6 +149,10 @@
         placeholder="Search by Company or Contact Person"
         class="w-1/3 border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
       />
+      <select v-model="statusFilter" class="ml-3 border border-gray-300 rounded-md px-3 py-2 text-sm">
+        <option value="active">Active clients</option>
+        <option value="archived">Archived clients</option>
+      </select>
     </div>
     <table class="table mt-6">
       <thead>
@@ -160,11 +164,12 @@
           <th>Phone</th>
           <th>Mobile</th>
           <th>Email</th>
-          <th v-if="userRole === 'admin' || userRole === 'accountant'">Actions</th>
+          <th>Status</th>
+          <th v-if="canManageCustomers">Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(customer, index) in filteredCustomers" :key="index">
+        <tr v-for="customer in filteredCustomers" :key="customer.id">
           <td>{{ customer.company_name }}</td>
           <td>{{ customer.contact_person }}</td>
           <td>{{ customer.address }}</td>
@@ -172,9 +177,11 @@
           <td>{{ customer.phone }}</td>
           <td>{{ customer.mobile }}</td>
           <td>{{ customer.email }}</td>
-          <td v-if="userRole === 'admin' || userRole === 'accountant'">
-            <button class="btn-edit" @click="editCustomer(index)">Edit</button>
-            <button class="btn-danger" @click="deleteCustomer(customer.id)">Delete</button>
+          <td>{{ customer.is_archived ? 'Archived' : 'Active' }}</td>
+          <td v-if="canManageCustomers">
+            <button class="btn-edit" @click="editCustomer(customer)">Edit</button>
+            <button v-if="!customer.is_archived" class="btn-danger" @click="archiveCustomer(customer)">Archive</button>
+            <button v-else class="btn-edit" @click="restoreCustomer(customer)">Restore</button>
           </td>
         </tr>
       </tbody>
@@ -203,24 +210,29 @@ export default {
       userRole: '', // Role of the logged-in user
       errors: {}, // Object to store validation errors
       searchQuery: '', // <-- Added for search
+      statusFilter: 'active',
     };
   },
   computed: {
     filteredCustomers() {
+      const statusFiltered = this.customers.filter(c => c.is_archived === (this.statusFilter === 'archived'));
       if (!this.searchQuery.trim()) {
-        return this.customers;
+        return statusFiltered;
       }
       const query = this.searchQuery.trim().toLowerCase();
-      return this.customers.filter(c =>
+      return statusFiltered.filter(c =>
         (c.company_name && c.company_name.toLowerCase().includes(query)) ||
         (c.contact_person && c.contact_person.toLowerCase().includes(query))
       );
+    },
+    canManageCustomers() {
+      return ['admin', 'editor', 'accountant'].includes(this.userRole);
     },
   },
   methods: {
     async fetchCustomers() {
       try {
-        const response = await axios.get('/customers');
+        const response = await axios.get('/customers?include_archived=true');
         this.customers = response.data;
       } catch (error) {
         console.error('Error fetching customers:', error);
@@ -305,8 +317,23 @@ export default {
         console.error('Error deleting customer:', error);
       }
     },
-    editCustomer(index) {
-      const customer = this.customers[index];
+    async archiveCustomer(customer) {
+      try {
+        await axios.patch(`/customers/${customer.id}/archive`);
+        customer.is_archived = true;
+      } catch (error) {
+        console.error('Error archiving customer:', error);
+      }
+    },
+    async restoreCustomer(customer) {
+      try {
+        await axios.patch(`/customers/${customer.id}/restore`);
+        customer.is_archived = false;
+      } catch (error) {
+        console.error('Error restoring customer:', error);
+      }
+    },
+    editCustomer(customer) {
       this.company_name = customer.company_name;
       this.contact_person = customer.contact_person;
       this.address = customer.address;

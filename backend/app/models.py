@@ -66,6 +66,7 @@ class Customer(db.Model):
     gstin = db.Column(db.String(15), nullable=True)
     state = db.Column(db.String(50), nullable=True, default="Maharashtra")
     code = db.Column(db.String(10), nullable=True, default="27")
+    is_archived = db.Column(db.Boolean, default=False, nullable=False)
 
     def serialize(self):
         return {
@@ -78,7 +79,8 @@ class Customer(db.Model):
             'email': self.email.split(',') if self.email else [],
             'gstin': self.gstin,
             'state': self.state,
-            'code': self.code
+            'code': self.code,
+            'is_archived': self.is_archived
         }
         
 class PlateSize(db.Model):
