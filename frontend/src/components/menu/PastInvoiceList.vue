@@ -156,111 +156,30 @@
     </div>
   </div>
 
-  <!-- Email Invoice Modal -->
-  <div v-if="showEmailModalFlag" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-1/2">
-      <h2 class="text-xl font-semibold mb-4">Email Invoice</h2>
+  <InvoiceEmailModal
+    v-if="showEmailModalFlag"
+    :invoice="selectedInvoice"
+    :customer-name="selectedCustomerName"
+    :customer-email="selectedCustomerEmail"
+    :email-data="emailData"
+    :is-sending="isSending"
+    @update:email-data="emailData = $event"
+    @close="closeEmailModal"
+    @send="sendEmail"
+    @go-to-customer-edit="goToCustomerEdit"
+  />
 
-      <div v-if="!selectedCustomerEmail" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        <strong>Error:</strong> This customer doesn't have an email address.
-        <a @click="goToCustomerEdit" class="text-blue-600 underline cursor-pointer">
-          Update email address
-        </a>
-      </div>
-
-      <div v-else>
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Invoice</label>
-          <div class="text-gray-800">{{ selectedInvoice?.invoice_number }}</div>
-        </div>
-
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-          <div class="text-gray-800">{{ selectedCustomerName }}</div>
-        </div>
-
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email To</label>
-          <div class="text-gray-800">{{ selectedCustomerEmail }}</div>
-        </div>
-
-        <div class="mb-4">
-          <label for="email-subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-          <input id="email-subject" v-model="emailData.subject" type="text"
-            class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
-        </div>
-
-        <div class="mb-4">
-          <label for="email-message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
-          <textarea id="email-message" v-model="emailData.message" rows="9"
-            class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
-        </div>
-
-        <div class="mb-4">
-          <label class="inline-flex items-center">
-            <input type="checkbox" v-model="emailData.includePdf" class="form-checkbox h-5 w-5 text-blue-600">
-            <span class="ml-2 text-gray-700">Attach invoice PDF</span>
-          </label>
-        </div>
-
-        <div v-if="selectedInvoice?.summary_start_date && selectedInvoice?.summary_end_date" class="mb-4">
-          <label class="inline-flex items-center">
-            <input type="checkbox" v-model="emailData.includeSummaryPdf" class="form-checkbox h-5 w-5 text-blue-600">
-            <span class="ml-2 text-gray-700">Attach customer summary PDF</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="flex justify-end space-x-3 mt-6">
-        <button @click="closeEmailModal" class="btn-secondary">
-          Cancel
-        </button>
-        <button @click="sendEmail" class="btn-primary" :disabled="isSending || !selectedCustomerEmail">
-          {{ isSending ? 'Sending...' : 'Send Email' }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Export Invoices Modal -->
-  <div v-if="showExportModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-1/3">
-      <h2 class="text-xl font-semibold mb-4">Export Invoices to Excel</h2>
-
-      <div class="mb-4">
-        <label for="export-date" class="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
-        <input id="export-date" v-model="exportDate" type="date"
-          class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          required />
-      </div>
-
-      <div class="mb-4">
-        <label for="export-invoice-number" class="block text-sm font-medium text-gray-700 mb-1">Export Specific Invoice
-          Number</label>
-        <input id="export-invoice-number" v-model="exportInvoiceNumber" type="text"
-          class="block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter Invoice Number" />
-      </div>
-
-      <div class="mb-4">
-        <p class="text-sm text-gray-600">
-          This will export all invoices created on the selected date in Tally-compatible format.
-        </p>
-      </div>
-
-      <div class="flex justify-end space-x-3 mt-6">
-        <button @click="closeExportModal" class="btn-secondary">
-          Cancel
-        </button>
-        <button @click="exportToExcel" class="btn-primary" :disabled="!exportDate || isExporting">
-          {{ isExporting ? 'Exporting...' : 'Export' }}
-        </button>
-        <button @click="exportSpecificInvoice" class="btn-primary" :disabled="!exportInvoiceNumber || isExporting">
-          {{ isExporting ? 'Exporting...' : 'Export Specific Invoice' }}
-        </button>
-      </div>
-    </div>
-  </div>
+  <InvoiceExportModal
+    v-if="showExportModal"
+    :export-date="exportDate"
+    :export-invoice-number="exportInvoiceNumber"
+    :is-exporting="isExporting"
+    @update:export-date="exportDate = $event"
+    @update:export-invoice-number="exportInvoiceNumber = $event"
+    @close="closeExportModal"
+    @export-date="exportToExcel"
+    @export-invoice="exportSpecificInvoice"
+  />
 </template>
 
 <script>
@@ -269,8 +188,11 @@ import moment from 'moment';
 import { printTaxInvoice } from '../../utils/printTaxInvoice';
 import { printCustomerSummary } from '../../utils/printCustomerSummary';
 import * as XLSX from 'xlsx';
+import InvoiceEmailModal from './InvoiceEmailModal.vue';
+import InvoiceExportModal from './InvoiceExportModal.vue';
 
 export default {
+  components: { InvoiceEmailModal, InvoiceExportModal },
   data() {
     return {
       invoices: [],

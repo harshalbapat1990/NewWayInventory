@@ -3,14 +3,16 @@ import axios from 'axios';
 
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
+  withCredentials: true,
 });
 
-// Add a request interceptor to include the JWT token
 instance.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('token'); // Ensure the token is stored in localStorage
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`; // Add the Authorization header
+    const method = (config.method || 'get').toLowerCase();
+    if (!['get', 'head', 'options'].includes(method)) {
+      const cookieName = config.url?.includes('/refresh') ? 'csrf_refresh_token' : 'csrf_access_token';
+      const csrf = document.cookie.split('; ').find(row => row.startsWith(`${cookieName}=`))?.split('=').slice(1).join('=');
+      if (csrf) config.headers['X-CSRF-TOKEN'] = decodeURIComponent(csrf);
     }
     return config;
   },
@@ -22,10 +24,17 @@ instance.interceptors.request.use(
 // Add a response interceptor
 instance.interceptors.response.use(
   response => response,
-  error => {
-    if (error.response && error.response.status === 401) {
-      // Redirect to the base URL when login times out
-      window.location.href = '/';
+  async error => {
+    const original = error.config;
+    const url = original?.url || '';
+    if (error.response?.status === 401 && original && !original._retry && !['/login', '/refresh', '/logout'].some(path => url.endsWith(path))) {
+      original._retry = true;
+      try {
+        await instance.post('/refresh');
+        return instance(original);
+      } catch (_) {
+        if (!window.location.pathname.startsWith('/login')) window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

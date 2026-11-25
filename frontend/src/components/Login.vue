@@ -39,9 +39,6 @@
                     </button>
                 </div>
             </form>
-            <div class="mt-4 text-center">
-                <a href="/reset-password" class="text-sm text-indigo-600 hover:underline">Forgot Password?</a>
-            </div>
         </div>
     </div>
 </template>

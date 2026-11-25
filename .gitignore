@@ -60,6 +60,5 @@ Thumbs.db
 
 # Custom build logs
 frontend/build_log.txt
-frontend\package-lock.json
 package_log.txt
 backend\build_log.txt

@@ -1,45 +1,74 @@
 # filepath: backend/app/models.py
 from . import db
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
+import secrets
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from sqlalchemy.orm import validates
+
+
+def _money_cents(value):
+    """Convert API-compatible numeric money values to exact cents."""
+    try:
+        amount = Decimal(str(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValueError('Monetary values must be valid numbers')
+    if not amount.is_finite():
+        raise ValueError('Monetary values must be finite')
+    return int(amount * 100)
+
+
+def _money_float(cents, fallback):
+    return float(Decimal(cents) / 100) if cents is not None else fallback
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     role = db.Column(db.Enum('admin', 'editor', 'user', 'accountant', name='user_roles'), nullable=False)  # Added 'accountant' role
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    auth_version = db.Column(db.Integer, default=0, nullable=False)
 
     @staticmethod
-    def create_default_users():
-        default_users = [
-            {
-                'username': 'admin',
-                'password': 'admin',
-                'first_name': 'Default',
-                'last_name': 'Admin',
-                'role': 'admin'
-            },
-            {
-                'username': 'accountant',
-                'password': 'accountant',
-                'first_name': 'Default',
-                'last_name': 'Accountant',
-                'role': 'accountant'
-            }
-        ]
+    def disable_known_default_credentials():
+        defaults = {'admin': 'admin', 'accountant': 'accountant'}
+        changed = False
+        for username, password in defaults.items():
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password, password):
+                user.password = generate_password_hash(secrets.token_urlsafe(48), method='scrypt')
+                user.is_active = False
+                user.auth_version = (user.auth_version or 0) + 1
+                changed = True
+        if changed:
+            db.session.commit()
 
-        for user_data in default_users:
-            if not User.query.filter_by(username=user_data['username']).first():
-                user = User(
-                    username=user_data['username'],
-                    password=generate_password_hash(user_data['password'], method='pbkdf2:sha256'),
-                    first_name=user_data['first_name'],
-                    last_name=user_data['last_name'],
-                    role=user_data['role']
-                )
-                db.session.add(user)
-        db.session.commit()
+
+class RevokedToken(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+
+class AppSetting(db.Model):
+    """Encrypted application settings; SMTP secrets are never serialized."""
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.Text, nullable=False)
+
+class AuditLog(db.Model):
+    """Minimal audit record for security and finance state changes."""
+    id = db.Column(db.Integer, primary_key=True)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    action = db.Column(db.String(80), nullable=False)
+    entity_type = db.Column(db.String(80), nullable=False)
+    entity_id = db.Column(db.String(80), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp(), index=True)
+
+class DocumentSequence(db.Model):
+    """Atomic sequence high-water marks for document number reservations."""
+    name = db.Column(db.String(40), primary_key=True)
+    period = db.Column(db.String(12), primary_key=True)
+    value = db.Column(db.Integer, nullable=False, default=0)
 
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -216,6 +245,14 @@ class CustomerRate(db.Model):
     plate_size_id = db.Column(db.Integer, db.ForeignKey('plate_size.id'), nullable=False)
     plate_rate = db.Column(db.Float, nullable=False, default=0.0)  # Changed from rate to plate_rate
     baking_rate = db.Column(db.Float, nullable=False, default=0.0) # Added new baking_rate field
+    plate_rate_cents = db.Column(db.Integer, nullable=False, default=0)
+    baking_rate_cents = db.Column(db.Integer, nullable=False, default=0)
+
+    @validates('plate_rate', 'baking_rate')
+    def store_rate_cents(self, key, value):
+        cents = _money_cents(value)
+        setattr(self, f'{key}_cents', cents)
+        return cents / 100
     
     # Define unique constraint for customer_id and plate_size_id
     __table_args__ = (
@@ -231,8 +268,8 @@ class CustomerRate(db.Model):
             'id': self.id,
             'customer_id': self.customer_id,
             'plate_size_id': self.plate_size_id,
-            'plate_rate': self.plate_rate,
-            'baking_rate': self.baking_rate
+            'plate_rate': _money_float(self.plate_rate_cents, self.plate_rate),
+            'baking_rate': _money_float(self.baking_rate_cents, self.baking_rate)
         }
 
 class Invoice(db.Model):
@@ -248,6 +285,11 @@ class Invoice(db.Model):
     sgst_amount = db.Column(db.Float, nullable=False, default=0.0)
     igst_amount = db.Column(db.Float, nullable=False, default=0.0)
     grand_total = db.Column(db.Float, nullable=False, default=0.0)
+    total_amount_cents = db.Column(db.Integer, nullable=False, default=0)
+    cgst_amount_cents = db.Column(db.Integer, nullable=False, default=0)
+    sgst_amount_cents = db.Column(db.Integer, nullable=False, default=0)
+    igst_amount_cents = db.Column(db.Integer, nullable=False, default=0)
+    grand_total_cents = db.Column(db.Integer, nullable=False, default=0)
     challan_references = db.Column(db.String(200), nullable=True)
     is_archived = db.Column(db.Boolean, default=False, nullable=False)
     status = db.Column(db.String(20), default='unpaid')  # unpaid, paid, cancelled
@@ -255,6 +297,12 @@ class Invoice(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     summary_start_date = db.Column(db.Date, nullable=True)
     summary_end_date = db.Column(db.Date, nullable=True)
+
+    @validates('total_amount', 'cgst_amount', 'sgst_amount', 'igst_amount', 'grand_total')
+    def store_total_cents(self, key, value):
+        cents = _money_cents(value)
+        setattr(self, f'{key}_cents', cents)
+        return cents / 100
     
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
@@ -270,11 +318,11 @@ class Invoice(db.Model):
             'due_date': self.due_date.isoformat(),
             'customer_id': self.customer_id,
             'customer_name': self.customer.company_name,
-            'total_amount': self.total_amount,
-            'cgst_amount': self.cgst_amount,
-            'sgst_amount': self.sgst_amount,
-            'igst_amount': self.igst_amount,
-            'grand_total': self.grand_total,
+            'total_amount': _money_float(self.total_amount_cents, self.total_amount),
+            'cgst_amount': _money_float(self.cgst_amount_cents, self.cgst_amount),
+            'sgst_amount': _money_float(self.sgst_amount_cents, self.sgst_amount),
+            'igst_amount': _money_float(self.igst_amount_cents, self.igst_amount),
+            'grand_total': _money_float(self.grand_total_cents, self.grand_total),
             'challan_references': self.challan_references,
             'is_archived': self.is_archived,
             'status': self.status,
@@ -285,6 +333,12 @@ class Invoice(db.Model):
             'items': [item.serialize() for item in self.items]
         }
 
+invoice_item_challan = db.Table(
+    'invoice_item_challan',
+    db.Column('invoice_item_id', db.Integer, db.ForeignKey('invoice_item.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('challan_id', db.Integer, db.ForeignKey('challan.id'), primary_key=True),
+)
+
 class InvoiceItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
@@ -294,10 +348,19 @@ class InvoiceItem(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     rate = db.Column(db.Float, nullable=False)
     amount = db.Column(db.Float, nullable=False)
+    rate_cents = db.Column(db.Integer, nullable=False, default=0)
+    amount_cents = db.Column(db.Integer, nullable=False, default=0)
     job_ids = db.Column(db.String(500), nullable=True)  # Comma-separated job IDs
     
     # Relationships
     plate_size = db.relationship('PlateSize', backref=db.backref('invoice_items', lazy=True))
+    challans = db.relationship('Challan', secondary=invoice_item_challan, lazy=True)
+
+    @validates('rate', 'amount')
+    def store_item_money_cents(self, key, value):
+        cents = _money_cents(value)
+        setattr(self, f'{key}_cents', cents)
+        return cents / 100
     
     def serialize(self):
         plate_size = self.plate_size
@@ -313,7 +376,9 @@ class InvoiceItem(db.Model):
             'description': self.description,
             'colours': self.colours,
             'quantity': self.quantity,
-            'rate': self.rate,
-            'amount': self.amount,
-            'job_ids': self.job_ids
+            'rate': _money_float(self.rate_cents, self.rate),
+            'amount': _money_float(self.amount_cents, self.amount),
+            'job_ids': self.job_ids,
+            'challan_ids': [challan.id for challan in self.challans],
+            'challan_codes': [challan.challan_code for challan in self.challans]
         }

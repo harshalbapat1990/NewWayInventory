@@ -49,7 +49,6 @@ export default {
   data() {
     return {
       activeMenu: null,
-      userRole: '',
       inventoryMenuItems: [
         { title: 'Purchase', route: '/purchase' },
         { title: 'Waste Plates', route: '/waste-plates' },
@@ -57,28 +56,27 @@ export default {
         { title: 'Date Wise Used Plates', route: '/date-wise-used-plates' } // Uncommented menu item
       ],
       adminMenuItems: [
-        { title: 'Add/Edit Customer', route: '/add-edit-customer' },
-        { title: 'Add/Edit Plate Sizes', route: '/add-edit-plate-sizes' }, // New menu item
-        { title: 'Add/Edit Customer Rate', route: '/customer-rate', roles: ['accountant'] }, // New menu item with roles
+        { title: 'Add/Edit Customer', route: '/add-edit-customer', roles: ['editor', 'admin'] },
+        { title: 'Add/Edit Plate Sizes', route: '/add-edit-plate-sizes', roles: ['editor', 'admin'] },
+        { title: 'Add/Edit Customer Rate', route: '/customer-rate', roles: ['accountant', 'admin'] },
+        { title: 'SMTP Settings', route: '/smtp-settings', roles: ['accountant', 'admin'] },
+        { title: 'Create User', route: '/create-new-user', roles: ['admin'] },
         { title: 'Archive Manager', route: '/archive-manager', roles: ['admin'] },
       ],
       jobsMenuItems: [
         { title: 'New Delivery Challan', route: '/jobs-delivery-challan' },
         { title: 'Challan List', route: '/challan-list' }, // Add Challan List menu item
         { title: 'Customer Summary', route: '/customer-summary' },
-        { title: 'Past Invoices', route: '/past-invoices', roles: ['accountant'] }, 
+        { title: 'Past Invoices', route: '/past-invoices', roles: ['accountant', 'admin'] },
       ]
     };
-  },
-  mounted() {
-    const user = this.$store.state.user;
-    this.userRole = user ? user.role : ''; // Safely access role or set to an empty string if user is null
   },
   computed: {
     ...mapState(['user']),
     isLoggedIn() {
       return !!this.user;
     },
+    userRole() { return this.user?.role || ''; },
     filteredAdminMenuItems() {
       // Filter admin menu items based on user role
       return this.adminMenuItems.filter(item => !item.roles || item.roles.includes(this.userRole));

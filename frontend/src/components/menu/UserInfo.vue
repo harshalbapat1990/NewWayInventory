@@ -11,6 +11,10 @@
     <h2 class="text-xl font-bold mb-4 text-gray-800">Reset Password</h2>
     <form @submit.prevent="resetPassword" class="grid grid-cols-1 gap-4">
       <div>
+        <label for="current-password" class="block text-sm font-medium text-gray-700">Current Password</label>
+        <input type="password" id="current-password" v-model="currentPassword" autocomplete="current-password" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm" />
+      </div>
+      <div>
         <label for="new-password" class="block text-sm font-medium text-gray-700">New Password</label>
         <input
           type="password"
@@ -18,6 +22,8 @@
           v-model="newPassword"
           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           required
+          minlength="12"
+          autocomplete="new-password"
         />
       </div>
       <button
@@ -38,6 +44,7 @@ export default {
   data() {
     return {
       user: null,
+      currentPassword: '',
       newPassword: '',
       message: '',
     };
@@ -45,9 +52,7 @@ export default {
   methods: {
     async fetchUserDetails() {
       try {
-        const response = await axios.get('/user-details', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await axios.get('/user-details');
         this.user = response.data;
       } catch (error) {
         console.error('Error fetching user details:', error);
@@ -56,12 +61,14 @@ export default {
     async resetPassword() {
       try {
         const response = await axios.post(
-          '/api/reset-password',
-          { new_password: this.newPassword },
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+          '/reset-password',
+          { current_password: this.currentPassword, new_password: this.newPassword }
         );
         this.message = response.data.message;
         this.newPassword = '';
+        this.currentPassword = '';
+        await this.$store.dispatch('logout');
+        this.$router.replace('/login');
       } catch (error) {
         console.error('Error resetting password:', error);
         this.message = error.response?.data?.message || 'An error occurred';

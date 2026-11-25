@@ -1,83 +1,34 @@
-<!-- filepath: frontend/src/components/menu/CreateNewUser.vue -->
 <template>
   <div class="create-new-user">
-    <h1 class="text-xl font-bold mb-4">Create New User</h1>
-    <form @submit.prevent="createUser">
-      <div class="mb-4">
-        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-        <input type="text" id="username" v-model="username" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-      </div>
-      <div class="mb-4">
-        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-        <input type="password" id="password" v-model="password" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-      </div>
-      <div class="mb-4">
-        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-        <input type="email" id="email" v-model="email" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
-      </div>
-      <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Create User</button>
+    <h1 class="text-xl font-bold mb-4">Manage Users</h1>
+    <form @submit.prevent="createUser" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <input v-model.trim="form.username" placeholder="Username" required autocomplete="off" />
+      <input v-model.trim="form.first_name" placeholder="First name" required />
+      <input v-model.trim="form.last_name" placeholder="Last name" required />
+      <input v-model="form.password" type="password" placeholder="Temporary password (12+ characters)" minlength="12" required autocomplete="new-password" />
+      <select v-model="form.role" required><option value="user">User</option><option value="editor">Editor</option><option value="accountant">Accountant</option><option value="admin">Admin</option></select>
+      <button type="submit">Create User</button>
     </form>
-    <table class="min-w-full divide-y divide-gray-200 mt-8">
-      <thead class="bg-gray-50">
-        <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr v-for="(user, index) in users" :key="index">
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ user.username }}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ user.email }}</td>
-        </tr>
-      </tbody>
+    <p v-if="message" role="status">{{ message }}</p>
+    <table class="min-w-full mt-8">
+      <thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+      <tbody><tr v-for="user in users" :key="user.id"><td>{{ user.username }}</td><td>{{ user.first_name }} {{ user.last_name }}</td><td>{{ user.role }}</td><td>{{ user.is_active ? 'Active' : 'Disabled' }}</td><td><button v-if="user.is_active" @click="deactivate(user)">Disable</button></td></tr></tbody>
     </table>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-
+import axios from '../../axios';
 export default {
-  data() {
-    return {
-      username: '',
-      password: '',
-      email: '',
-      users: []
-    };
-  },
+  data: () => ({ users: [], message: '', form: { username: '', first_name: '', last_name: '', password: '', role: 'user' } }),
   methods: {
-    async fetchUsers() {
-      try {
-        const response = await axios.get('/api/users');
-        this.users = response.data;
-      } catch (error) {
-        console.error('Error fetching users:', error);
-      }
-    },
+    async fetchUsers() { try { this.users = (await axios.get('/users')).data; } catch (_) { this.message = 'Unable to load users'; } },
     async createUser() {
-      const newUser = {
-        username: this.username,
-        password: this.password,
-        email: this.email
-      };
-      try {
-        const response = await axios.post('/api/users', newUser);
-        this.users.push(response.data);
-        this.username = '';
-        this.password = '';
-        this.email = '';
-      } catch (error) {
-        console.error('Error creating user:', error);
-      }
-    }
+      try { await axios.post('/users', this.form); this.form = { username: '', first_name: '', last_name: '', password: '', role: 'user' }; this.message = 'User created'; await this.fetchUsers(); }
+      catch (e) { this.message = e.response?.data?.message || 'Unable to create user'; }
+    },
+    async deactivate(user) { try { await axios.delete(`/users/${user.id}`); await this.fetchUsers(); } catch (_) { this.message = 'Unable to disable user'; } }
   },
-  mounted() {
-    this.fetchUsers();
-  }
+  mounted() { this.fetchUsers(); }
 };
 </script>
-
-<style scoped>
-/* Add any styles here */
-</style>

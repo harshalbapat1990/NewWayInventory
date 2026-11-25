@@ -68,203 +68,48 @@
       </div>
     </form>
 
-    <!-- Modal for Tax Invoice Number Confirmation -->
-    <div v-if="showInvoiceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 shadow-lg w-2/3 max-h-[85vh] overflow-y-auto">
-        <h2 class="text-xl font-bold mb-4">Generate Tax Invoice</h2>
-        <p class="mb-4">You are about to generate a tax invoice with the following details:</p>
+    <TaxInvoiceConfirmModal
+      v-if="showInvoiceModal"
+      :invoice-prefix="invoicePrefix"
+      :invoice-sequence="invoiceSequence"
+      :invoice-date="previewInvoiceData.invoice_date"
+      :customer="selectedCustomer"
+      :start-date="startDate"
+      :end-date="endDate"
+      :grouped-challans="groupedChallans"
+      :is-valid-sequence="isValidSequence"
+      :is-valid-invoice-number="isValidInvoiceNumber"
+      :find-job-rate-binding="findJobRateBinding"
+      @update:invoice-sequence="invoiceSequence = $event"
+      @update:invoice-date="previewInvoiceData.invoice_date = $event"
+      @rate-input="onJobRateInput($event.size, $event.colour, $event.jobId, $event.value)"
+      @cancel="cancelInvoiceGeneration"
+      @confirm="confirmInvoiceGeneration"
+    />
 
-        <div class="mb-6 bg-gray-100 p-4 rounded">
-          <div class="grid grid-cols-2 gap-2">
-            <div class="font-semibold">Invoice Number:</div>
-            <div class="flex items-center">
-              <span class="p-1 bg-gray-200 border border-gray-300 rounded-l">{{ invoicePrefix }}</span>
-              <input 
-                v-model="invoiceSequence"
-                type="text" 
-                class="w-1/4 p-1 border border-gray-300 rounded-r"
-                maxlength="5"
-                :class="{'border-red-500': !isValidSequence}"
-              />
-            </div>
-            <div v-if="!isValidSequence" class="col-span-2 text-red-500 text-sm mt-1">
-              Invoice sequence must be a number
-            </div>
-            <div class="font-semibold">Invoice Date:</div>
-            <div>
-              <input 
-                type="date" 
-                v-model="previewInvoiceData.invoice_date"
-                class="w-full p-1 border border-gray-300 rounded"
-              />
-            </div>
-            <div class="font-semibold">Customer:</div>
-            <div>{{ selectedCustomer.company_name }}</div>
-            <div class="font-semibold">Date Range:</div>
-            <div>{{ startDate }} to {{ endDate }}</div>
-          </div>
-        </div>
-
-        <!-- Summary Table (as in summary, with rate for each item) -->
-        <div class="mb-6">
-          <h3 class="text-lg font-semibold mb-2">Summary</h3>
-          <div class="overflow-x-auto">
-            <table class="min-w-full border border-gray-300">
-              <thead>
-                <tr class="bg-gray-100">
-                  <th class="px-2 py-1 border border-gray-300">Size</th>
-                  <th class="px-2 py-1 border border-gray-300">Colour</th>
-                  <th class="px-2 py-1 border border-gray-300">Challan No</th>
-                  <th class="px-2 py-1 border border-gray-300">Job ID</th>
-                  <th class="px-2 py-1 border border-gray-300">Sets</th>
-                  <th class="px-2 py-1 border border-gray-300">Job Name</th>
-                  <th class="px-2 py-1 border border-gray-300">Remark</th>
-                  <th class="px-2 py-1 border border-gray-300">Rate (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template v-for="(plateGroup, plateIndex) in groupedChallans" :key="plateIndex">
-                  <template v-for="(colourGroup, colourIndex) in plateGroup.colours" :key="colourIndex">
-                    <template v-for="(challanGroup, challanIndex) in colourGroup.challans" :key="challanIndex">
-                      <template v-for="(job, jobIndex) in challanGroup.jobs" :key="jobIndex">
-                        <tr>
-                          <td class="px-2 py-1 border border-gray-300">{{ plateGroup.size }}</td>
-                          <td class="px-2 py-1 border border-gray-300">{{ colourGroup.colour }}</td>
-                          <td class="px-2 py-1 border border-gray-300">{{ challanGroup.challan_no }}</td>
-                          <td class="px-2 py-1 border border-gray-300">{{ job.job_id }}</td>
-                          <td class="px-2 py-1 border border-gray-300">{{ job.quantity }}</td>
-                          <td class="px-2 py-1 border border-gray-300">{{ job.job_name }}</td>
-                          <td class="px-2 py-1 border border-gray-300">{{ job.remark }}</td>
-                          <td class="px-2 py-1 border border-gray-300">
-                            <!-- Editable rate input -->
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              class="w-20 border border-gray-300 rounded px-1 py-0.5"
-                              :value="findJobRateBinding(plateGroup.size, colourGroup.colour, job.job_id)"
-                              @input="onJobRateInput(plateGroup.size, colourGroup.colour, job.job_id, $event.target.value)"
-                            />
-                          </td>
-                        </tr>
-                      </template>
-                    </template>
-                  </template>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="flex justify-end space-x-4">
-          <button @click="cancelInvoiceGeneration" class="btn-secondary">
-            Cancel
-          </button>
-          <button 
-            @click="confirmInvoiceGeneration" 
-            class="btn-primary"
-            :disabled="!isValidInvoiceNumber"
-          >
-            Confirm & Print
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bulk Invoice Generation Modal -->
-    <div v-if="showBulkInvoiceModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-2/3 max-h-[80vh] overflow-y-auto">
-        <h2 class="text-xl font-bold mb-4">Generate Invoices for Selected Customers</h2>
-        
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <!-- Date inputs -->
-          <div>
-            <div class="font-semibold mb-2">Start Date:</div>
-            <input 
-              type="date" 
-              v-model="bulkInvoiceStartDate"
-              class="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-          <div>
-            <div class="font-semibold mb-2">End Date:</div>
-            <input 
-              type="date" 
-              v-model="bulkInvoiceEndDate"
-              class="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-          <div>
-            <div class="font-semibold mb-2">Invoice Date:</div>
-            <input 
-              type="date" 
-              v-model="bulkInvoiceDate"
-              class="w-full p-2 border border-gray-300 rounded"
-            />
-          </div>
-          <div>
-            <div class="font-semibold mb-2">Starting Invoice Number:</div>
-            <div class="flex items-center">
-              <span class="p-2 bg-gray-200 border border-gray-300 rounded-l">{{ invoicePrefix }}</span>
-              <input 
-                v-model="invoiceSequence"
-                type="text" 
-                class="w-1/4 p-2 border border-gray-300 rounded-r"
-                maxlength="5"
-                :class="{'border-red-500': !isValidSequence}"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Customer selection -->
-        <div class="mb-6">
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="font-semibold">Select Customers</h3>
-            <div class="space-x-2">
-              <button @click="selectAllCustomers" class="text-sm text-blue-600 hover:text-blue-800">
-                Select All
-              </button>
-              <span class="text-gray-400">|</span>
-              <button @click="deselectAllCustomers" class="text-sm text-blue-600 hover:text-blue-800">
-                Deselect All
-              </button>
-            </div>
-          </div>
-          <div class="border border-gray-200 rounded max-h-60 overflow-y-auto p-2">
-            <div 
-              v-for="customer in activeCustomers"
-              :key="customer.id"
-              class="flex items-center p-2 hover:bg-gray-50"
-            >
-              <input
-                type="checkbox"
-                :id="'customer-' + customer.id"
-                v-model="selectedCustomersForBulk"
-                :value="customer.id"
-                class="h-4 w-4 text-blue-600 rounded border-gray-300"
-              />
-              <label :for="'customer-' + customer.id" class="ml-2 cursor-pointer flex-1">
-                {{ customer.company_name }}
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex justify-end space-x-4">
-          <button @click="showBulkInvoiceModal = false" class="btn-secondary">
-            Cancel
-          </button>
-          <button 
-            @click="generateBulkInvoices" 
-            class="btn-primary"
-            :disabled="!isValidBulkDateRange || !isValidInvoiceNumber || selectedCustomersForBulk.length === 0 || isBulkGenerating"
-          >
-            {{ isBulkGenerating ? 'Generating...' : 'Generate Invoices' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <BulkInvoiceModal
+      v-if="showBulkInvoiceModal"
+      :start-date="bulkInvoiceStartDate"
+      :end-date="bulkInvoiceEndDate"
+      :invoice-date="bulkInvoiceDate"
+      :invoice-sequence="invoiceSequence"
+      :invoice-prefix="invoicePrefix"
+      :customers="activeCustomers"
+      :selected-customers="selectedCustomersForBulk"
+      :is-valid-sequence="isValidSequence"
+      :is-valid-date-range="isValidBulkDateRange"
+      :is-valid-invoice-number="isValidInvoiceNumber"
+      :is-generating="isBulkGenerating"
+      @update:start-date="bulkInvoiceStartDate = $event"
+      @update:end-date="bulkInvoiceEndDate = $event"
+      @update:invoice-date="bulkInvoiceDate = $event"
+      @update:invoice-sequence="invoiceSequence = $event"
+      @update:selected-customers="selectedCustomersForBulk = $event"
+      @select-all="selectAllCustomers"
+      @deselect-all="deselectAllCustomers"
+      @close="showBulkInvoiceModal = false"
+      @generate="generateBulkInvoices"
+    />
 
     <div v-else-if="groupedChallans.length > 0" class="mt-8">
       <div class="grid grid-cols-50 font-bold border-b border-gray-800 pb-2 text-lg">
@@ -345,8 +190,11 @@
 import axios from '../../axios';
 import { printCustomerSummary } from '../../utils/printCustomerSummary';
 import { printTaxInvoice } from '../../utils/printTaxInvoice';
+import BulkInvoiceModal from './BulkInvoiceModal.vue';
+import TaxInvoiceConfirmModal from './TaxInvoiceConfirmModal.vue';
 
 export default {
+  components: { BulkInvoiceModal, TaxInvoiceConfirmModal },
   data() {
     const today = new Date();
     const oneMonthAgo = new Date();
@@ -478,6 +326,7 @@ export default {
                 if (!challanGroup) {
                   challanGroup = {
                     challan_no: challanCodeFormatted,
+                    challan_id: challan.id,
                     jobs: []
                   };
                   colourGroup.challans.push(challanGroup);
@@ -485,6 +334,7 @@ export default {
 
             challanGroup.jobs.push({
               job_id: job.job_id,
+              challan_id: challan.id,
               quantity: job.quantity,
               job_name: job.job_name,
               remark: job.remark,
@@ -558,9 +408,9 @@ export default {
               challan.jobs.forEach(job => {
                 const hasBaking = job.remark && job.remark.toLowerCase().includes('baking');
                 if (hasBaking) {
-                  bakingJobs.push({ ...job, challan_no: challan.challan_no });
+                  bakingJobs.push({ ...job, challan_no: challan.challan_no, challan_id: challan.challan_id });
                 } else {
-                  regularJobs.push({ ...job, challan_no: challan.challan_no });
+                  regularJobs.push({ ...job, challan_no: challan.challan_no, challan_id: challan.challan_id });
                 }
               });
             });
@@ -681,57 +531,15 @@ export default {
     
     async generateFormattedInvoiceNumber() {
       try {
-        // Get the latest invoice number from the API
-        const response = await axios.get('/invoices/latest');
-        
-        // Check if we have a valid invoice data in the response
-        if (response.data && response.status === 200) {
-          const latestInvoice = response.data;
-          
-          // Always compute the actual current financial year from the client's date
-          const today = new Date();
-          const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
-          const fyEnd = fyStart + 1;
-          const currentFY = `${String(fyStart).slice(-2)}${String(fyEnd).slice(-2)}`;
-
-          let financialYear = currentFY;
-          let sequenceNumber = 1;
-
-          if (latestInvoice.financial_year && latestInvoice.financial_year === currentFY) {
-            // API returned an invoice from the current financial year — continue its sequence
-            sequenceNumber = (latestInvoice.invoice_sequence || 0) + 1;
-            this.latestSequenceNumber = latestInvoice.invoice_sequence || 0;
-          } else {
-            // API returned an invoice from an old financial year — new FY resets to 1
-            sequenceNumber = 1;
-            this.latestSequenceNumber = 0;
-          }
-          
-          // Store the prefix and sequence separately for display
-          this.currentFinancialYear = financialYear;
-          this.invoicePrefix = `${financialYear}/GST/`;
-          this.invoiceSequence = sequenceNumber.toString();
-        } else {
-          // Fallback if response is invalid
-          const today = new Date();
-          const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
-          const fyEnd = fyStart + 1;
-          const financialYear = `${String(fyStart).slice(-2)}${String(fyEnd).slice(-2)}`;
-          this.currentFinancialYear = financialYear;
-          this.invoicePrefix = `${financialYear}/GST/`;
-          this.invoiceSequence = "01";
-        }
+        const { data } = await axios.get('/invoices/next-sequences');
+        this.currentFinancialYear = data.financial_year;
+        this.invoicePrefix = `${data.financial_year}/GST/`;
+        this.invoiceSequence = String(data.start);
+        this.latestSequenceNumber = data.start - 1;
       } catch (error) {
-        console.error('Error generating invoice number:', error);
-        // Fallback to a default format if there's an error
-        const today = new Date();
-        const fyStart = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
-        const fyEnd = fyStart + 1;
-        const financialYear = `${String(fyStart).slice(-2)}${String(fyEnd).slice(-2)}`;
-        this.currentFinancialYear = financialYear;
-        this.invoicePrefix = `${financialYear}/GST/`;
-        this.invoiceSequence = "01";
-        this.latestSequenceNumber = 0; // Reset to 0 to avoid validation errors
+        console.error('Error reserving invoice number:', error);
+        this.invoiceSequence = '';
+        alert('Could not reserve an invoice number. Try again before creating the invoice.');
       }
     },
     
@@ -758,9 +566,11 @@ export default {
           const existingInvoiceResponse = await axios.get(`/invoices/check-number/${encodeURIComponent(invoiceNumber)}`);
           if (existingInvoiceResponse.data.exists) {
             // If it exists, get the next available number from the API
-            const latestResponse = await axios.get('/invoices/latest');
+            const latestResponse = await axios.get('/invoices/next-sequences');
             if (latestResponse.data && latestResponse.status === 200) {
-              const nextSequence = (latestResponse.data.invoice_sequence || 0) + 1;
+              const nextSequence = latestResponse.data.start;
+              this.currentFinancialYear = latestResponse.data.financial_year;
+              this.invoicePrefix = `${latestResponse.data.financial_year}/GST/`;
               this.invoiceSequence = nextSequence.toString();
               invoiceNumber = `${this.invoicePrefix}${nextSequence.toString().padStart(2, '0')}`;
               currentSequence = nextSequence;
@@ -770,9 +580,11 @@ export default {
               alert(`Invoice number ${invoiceNumber} already exists. Please use a different sequence number.`);
               // Update the sequence to next available before reopening modal
               try {
-                const latestFallbackResponse = await axios.get('/invoices/latest');
+                const latestFallbackResponse = await axios.get('/invoices/next-sequences');
                 if (latestFallbackResponse.data) {
-                  this.invoiceSequence = ((latestFallbackResponse.data.invoice_sequence || 0) + 1).toString();
+                  this.currentFinancialYear = latestFallbackResponse.data.financial_year;
+                  this.invoicePrefix = `${latestFallbackResponse.data.financial_year}/GST/`;
+                  this.invoiceSequence = String(latestFallbackResponse.data.start);
                 }
               } catch (fallbackError) {
                 console.error('Error getting fallback sequence:', fallbackError);
@@ -787,9 +599,11 @@ export default {
             alert('Error checking invoice number. Please try again.');
             // Update the sequence to next available before reopening modal
             try {
-              const latestFallbackResponse = await axios.get('/invoices/latest');
+              const latestFallbackResponse = await axios.get('/invoices/next-sequences');
               if (latestFallbackResponse.data) {
-                this.invoiceSequence = ((latestFallbackResponse.data.invoice_sequence || 0) + 1).toString();
+                this.currentFinancialYear = latestFallbackResponse.data.financial_year;
+                this.invoicePrefix = `${latestFallbackResponse.data.financial_year}/GST/`;
+                this.invoiceSequence = String(latestFallbackResponse.data.start);
               }
             } catch (fallbackError) {
               console.error('Error getting fallback sequence:', fallbackError);
@@ -867,9 +681,11 @@ export default {
           alert(`Invoice number ${this.formattedInvoiceNumber} already exists. Please use a different sequence number or delete the existing invoice.`);
           // Update the sequence to next available before reopening modal
           try {
-            const latestFallbackResponse = await axios.get('/invoices/latest');
+            const latestFallbackResponse = await axios.get('/invoices/next-sequences');
             if (latestFallbackResponse.data) {
-              this.invoiceSequence = ((latestFallbackResponse.data.invoice_sequence || 0) + 1).toString();
+              this.currentFinancialYear = latestFallbackResponse.data.financial_year;
+              this.invoicePrefix = `${latestFallbackResponse.data.financial_year}/GST/`;
+              this.invoiceSequence = String(latestFallbackResponse.data.start);
             }
           } catch (fallbackError) {
             console.error('Error getting fallback sequence:', fallbackError);
@@ -930,13 +746,20 @@ export default {
           skipped: []
         };
 
-        // Initialize current sequence from the component data
-        let currentSequence = parseInt(this.invoiceSequence, 10);
-
         // Filter customers based on selection
         const selectedCustomers = this.activeCustomers.filter(customer =>
           this.selectedCustomersForBulk.includes(customer.id)
         );
+        const { data: reservation } = await axios.get('/invoices/next-sequences', {
+          params: { count: selectedCustomers.length }
+        });
+        if (reservation.count < selectedCustomers.length) {
+          throw new Error('Too many invoices to reserve in one operation.');
+        }
+        let currentSequence = reservation.start;
+        this.currentFinancialYear = reservation.financial_year;
+        this.invoicePrefix = `${reservation.financial_year}/GST/`;
+        this.invoiceSequence = String(currentSequence);
 
         // Process each selected customer
         for (const customer of selectedCustomers) {
@@ -1014,6 +837,7 @@ export default {
                     challan_no: challan.challan_sequence
                       ? String(challan.challan_sequence)
                       : (challan.challan_code.split('/').pop() || challan.challan_code.split('-')[1] || challan.challan_code),
+                    challan_id: challan.id,
                     jobs: []
                   };
                   colourGroup.challans.push(challanGroup);
@@ -1060,9 +884,9 @@ export default {
                   challan.jobs.forEach(job => {
                     const hasBaking = job.remark && job.remark.toLowerCase().includes('baking');
                     if (hasBaking) {
-                      bakingJobs.push({ ...job, challan_no: challan.challan_no });
+                      bakingJobs.push({ ...job, challan_no: challan.challan_no, challan_id: challan.challan_id });
                     } else {
-                      regularJobs.push({ ...job, challan_no: challan.challan_no });
+                      regularJobs.push({ ...job, challan_no: challan.challan_no, challan_id: challan.challan_id });
                     }
                   });
                 });
