@@ -88,9 +88,16 @@ def register_routes(app):
         return jsonify(access_token=access_token), 200
 
     @app.route('/api/customers', methods=['GET', 'POST'])
-    @role_required(['user', 'editor', 'admin'])  # Accessible by all roles
+    @jwt_required()
     def manage_customers():
+        role = get_jwt().get('role')
+        if role not in ('user', 'editor', 'admin', 'accountant'):
+            return jsonify({"message": "Access denied"}), 403
         if request.method == 'POST':
+            # Accountants can resolve customers for historical views, but the
+            # existing customer-creation permission remains unchanged.
+            if role not in ('user', 'editor', 'admin'):
+                return jsonify({"message": "Access denied"}), 403
             data = request.get_json()
             new_customer = Customer(
                 company_name=data['company_name'],

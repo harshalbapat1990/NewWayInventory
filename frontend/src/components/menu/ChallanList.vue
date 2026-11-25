@@ -2,6 +2,11 @@
   <div class="challan-list p-6 bg-gray-50 rounded-lg shadow-md">
     <h1 class="text-2xl font-bold mb-6 text-gray-800">Challans</h1>
 
+    <div v-if="customerLoadError" role="alert" class="mb-4 rounded border border-red-300 bg-red-50 p-3 text-red-800">
+      {{ customerLoadError }}
+      <button class="ml-2 underline" @click="fetchCustomers">Retry loading customers</button>
+    </div>
+
     <!-- Filters -->
     <div class="filters mb-4 flex flex-wrap gap-4 items-end">
       <div>
@@ -186,6 +191,7 @@ export default {
     return {
       challans: [],
       customers: [],
+      customerLoadError: '',
       plateSizes: [],
       availableFinancialYears: [],
       filters: {
@@ -268,11 +274,16 @@ export default {
       }
     },
     async fetchCustomers() {
+      this.customerLoadError = '';
       try {
         const response = await axios.get('/customers?include_archived=true');
+        if (!Array.isArray(response.data)) {
+          throw new Error('Customer API returned an invalid response');
+        }
         this.customers = response.data;
       } catch (error) {
         console.error('Error fetching customers:', error);
+        this.customerLoadError = 'Customer names could not be loaded. Check your access or connection, then retry.';
       }
     },
     async fetchPlateSizes() {
@@ -288,7 +299,7 @@ export default {
     },
     getCustomerName(customerId) {
       const customer = this.customers.find(c => c.id === customerId);
-      return customer ? customer.company_name : 'Unknown';
+      return customer ? customer.company_name : `Unknown customer (ID ${customerId})`;
     },
     applyFilters() {
       // Reset to page 1 when applying filters

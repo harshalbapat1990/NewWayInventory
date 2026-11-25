@@ -48,8 +48,24 @@ def create_app():
         from . import routes
         routes.register_routes(app)
         from .models import User, Item, Customer, PlateSize, WastePlate, Job, Plate, UsedPlate
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        customer_column_preexisting = (
+            inspector.has_table('customer') and
+            'is_archived' in {column['name'] for column in inspector.get_columns('customer')}
+        )
+        database_path = db.engine.url.database
+        if database_path and database_path != ':memory:':
+            import os
+            database_path = os.path.realpath(database_path)
+        app.logger.info('Using SQLite database: %s', database_path)
         db.create_all()
         run_migrations(db)
+        customer_columns = {column['name'] for column in inspect(db.engine).get_columns('customer')}
+        if 'is_archived' not in customer_columns:
+            raise RuntimeError('Customer archive migration did not add customer.is_archived')
+        migration_status = 'already present' if customer_column_preexisting else 'added during startup migration'
+        app.logger.info('Customer archive migration status: %s (customer.is_archived in %s)', migration_status, database_path)
         User.create_default_users()
         create_views()
 
